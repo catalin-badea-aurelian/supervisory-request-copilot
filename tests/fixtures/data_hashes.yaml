@@ -1,0 +1,23 @@
+# Canonical content hashes of seed 42 at scale 0.03 (OS-independent; ARCHITECTURE 7.3).
+# Regenerate deliberately when the generator changes; never to silence a failure.
+scale_0.03:
+  clean:
+    ewi_thresholds: 9aaad454c2b6003bfa3be8b8f7403603789907aa8c133f0c82aa4669a8df95aa
+    grp_merchant_monthly: 456f433d622340188db67fe1e8199a7331d2c01fc44b8591bab8c7faff11e8b1
+    ledger_control_totals: f29fa227a429283008199a773aaa07f0ca7a26773df64ded8b86d1b91f53c519
+    meta_load_log: b56ed5d7ab06be3e46da7cbde3420aae5d7001bb3cc08dec90d75f85cea9863b
+    prior_submissions: b5efd8eeec2b93c0b217bffe455b451d583869a9e6c0948954b19b99781500dd
+    src_chargebacks: 807a6827294ac568dd074081ed2082195f46154c3800fb920b7cb62575f95c5c
+    src_fraud_losses: 43caea74ae536b1ff37ffa8eb3df97a883432e04cea33731c698697c9b062681
+    src_merchants: fe6cf9a4f6371c8bb921bc72b76ddaf3554f99867e9a669b6678cf91435459d9
+    src_transactions: 43277ac1990de2186120dad5d02a54709eb48c638c84b2468636ff271b0b504f
+  default:
+    ewi_thresholds: 9aaad454c2b6003bfa3be8b8f7403603789907aa8c133f0c82aa4669a8df95aa
+    grp_merchant_monthly: 0e196e5cd434191a3b9f3709206f8c5d77ae9d7a9aea577f09cf446a92de5dc9
+    ledger_control_totals: f29fa227a429283008199a773aaa07f0ca7a26773df64ded8b86d1b91f53c519
+    meta_load_log: d77083976e75a57087394bde4a567ff15f1faab93486ac15798c49fd2a8edc2c
+    prior_submissions: b5efd8eeec2b93c0b217bffe455b451d583869a9e6c0948954b19b99781500dd
+    src_chargebacks: 807a6827294ac568dd074081ed2082195f46154c3800fb920b7cb62575f95c5c
+    src_fraud_losses: 43caea74ae536b1ff37ffa8eb3df97a883432e04cea33731c698697c9b062681
+    src_merchants: c2e996ce17f5d1a7b45903f23e76f37934f1ed9c52ae0171fea9d10096219cfc
+    src_transactions: 2eb4090f7f85628d3c9ebee27df79101d7949e2922ed35ec10ea0135529cb946
