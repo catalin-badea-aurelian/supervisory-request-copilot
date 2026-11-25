@@ -155,9 +155,9 @@ def test_defects_are_confined_to_august_and_september_2025(small_default, small_
         "ledger_control_totals",
         "prior_submissions",
     ):
-        assert canonical_hash(_t(small_default, name)) == canonical_hash(
-            _t(small_clean, name)
-        ), name
+        assert canonical_hash(_t(small_default, name)) == canonical_hash(_t(small_clean, name)), (
+            name
+        )
     gd, gc = _group(small_default), _group(small_clean)
     cut = pd.Timestamp("2025-08-01")
     cols = [c for c in gd.columns if c != "_loaded_at"]
