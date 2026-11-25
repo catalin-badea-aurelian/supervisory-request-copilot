@@ -321,7 +321,7 @@ Both modes are generated from the same seed and must produce identical metric re
 
 ## 9. Milestones and acceptance criteria
 
-The **MVP** is M0–M5 plus M8 (scenarios S1, S2, S4): about 6 focused days. M6–M7 complete the project. M8 can start right after M2.
+The **MVP** is M0–M5 plus M8 (scenarios S1, S2, S4): about 6 focused days. M6–M7 complete the project. M8a can start right after M3 (not M2 — `copilot dq scan` and the ops export need the guarded data-access layer and snapshotting from M3, not just the M2 check catalogue).
 
 | # | Milestone | Scope | Acceptance criteria | Est. |
 |---|---|---|---|---|
@@ -333,7 +333,7 @@ The **MVP** is M0–M5 plus M8 (scenarios S1, S2, S4): about 6 focused days. M6�
 | M5 | Reviewer + evidence | Corpus fetch and index; retriever; reviewer; citation validation; evidence builder (MD + HTML) | Every citation resolves to a retrieved chunk; evidence pack has all sections; S1/S2 packs committed in `examples/` | 1 d |
 | M6 | Metric proposal | Proposer agent, GD gate, pack versioning | S3 passes; undefined metric never answered before GD approval; repeat request goes straight through | 0.5 d |
 | M7 | Evals + docs + demo | Eval harness and report; README; `docs/DEMO_SCRIPT.md`; GIF or short video | §10 targets met; fresh-clone quickstart works | 1 d |
-| M8 | Looker semantic layer + dashboards | **8a (no instance needed):** DQ scan; ops tables and export; mart view generator (`make views`); LookML generator (`make lookml`) with unit tests on the generated files. **8b (trial instance):** Looker → BigQuery connection; LookML project repo and `make lookml-publish`; validation; three LookML dashboards; MCP Toolbox in Claude Code; consistency test; screenshots and a 2-minute video | LookML validates with no errors or warnings; three dashboards render and tell the §6 S4 story; consistency test (FR-D6) green; screenshots and video committed or linked; rebuild-from-Git steps tested | 1.5 d |
+| M8 | Looker semantic layer + dashboards | **8a (starts once M3 is done; no instance needed):** DQ scan; ops tables and export; mart view generator (`make views`); LookML generator (`make lookml`) with unit tests on the generated files. **8b (trial instance):** Looker → BigQuery connection; LookML project repo and `make lookml-publish`; validation; three LookML dashboards; MCP Toolbox in Claude Code; consistency test; screenshots and a 2-minute video | LookML validates with no errors or warnings; three dashboards render and tell the §6 S4 story; consistency test (FR-D6) green; screenshots and video committed or linked; rebuild-from-Git steps tested | 1.5 d |
 
 ## 10. Evaluation plan
 

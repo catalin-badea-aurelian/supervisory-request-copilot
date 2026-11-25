@@ -1,0 +1,40 @@
+# CI covers only what must never touch the network or an external service:
+# lint, type-check and the local pytest suite (DuckDB / local mode).
+# BigQuery, Looker and LLM-calling targets (make eval, make lookml-check,
+# make verify-iam, make demo) require live credentials and are run manually,
+# never in CI.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --all-groups
+
+      - name: Lint (ruff check)
+        run: uv run ruff check .
+
+      - name: Format check (ruff format)
+        run: uv run ruff format --check .
+
+      - name: Type check (mypy)
+        run: uv run mypy src
+
+      - name: Test (pytest)
+        run: uv run pytest
