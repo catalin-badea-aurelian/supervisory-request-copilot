@@ -1,0 +1,25 @@
+-- fraud_loss_rate_bps (preferred source). BigQuery Standard SQL; transpiled to DuckDB by the pack compiler.
+WITH losses AS (
+  SELECT txn_id, SUM(loss_eur) AS loss_eur
+  FROM {{ source('src_fraud_losses') }}
+  WHERE DATE(_loaded_at) <= @as_of
+  GROUP BY txn_id
+),
+base AS (
+  SELECT DATE(t.txn_ts) AS period_date, COALESCE(m.merchant_country, 'XX') AS merchant_country,
+         m.mcc_group, t.payment_method, t.amount_eur, COALESCE(l.loss_eur, 0) AS loss_eur
+  FROM {{ source('src_transactions') }} AS t
+  LEFT JOIN {{ source('src_merchants') }} AS m ON m.merchant_id = t.merchant_id
+  LEFT JOIN losses AS l ON l.txn_id = t.txn_id
+  WHERE TRUE
+    AND t.txn_ts >= TIMESTAMP(@period_start)
+    AND t.txn_ts < TIMESTAMP(DATE_ADD(@period_end, INTERVAL 1 DAY))
+    AND DATE(t._loaded_at) <= @as_of
+    AND t.status IN ('settled', 'refunded')
+)
+SELECT {{ dims_lead }}SUM(loss_eur) AS fraud_loss_eur,
+  SUM(amount_eur) AS settled_volume_eur,
+  SAFE_DIVIDE(CAST(SUM(loss_eur) AS FLOAT64), CAST(SUM(amount_eur) AS FLOAT64)) * 10000 AS fraud_loss_rate_bps
+FROM base
+WHERE TRUE {{ filters_sql }}
+{{ group_sql }}

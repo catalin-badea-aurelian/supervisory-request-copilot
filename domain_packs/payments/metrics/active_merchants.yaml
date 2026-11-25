@@ -1,0 +1,24 @@
+id: active_merchants
+version: 1.0.0
+status: approved
+name: "Active merchants"
+owner: "Payments Risk Oversight (fictional role)"
+definition: >
+  Number of distinct merchants with at least one settled transaction in the period. Not additive across dimensions.
+unit: count
+attribution: transaction_month
+allowed_dimensions: [period, merchant_country, mcc_group]
+preferred_source: src_transactions
+independent_sources: [src_transactions, src_merchants]
+sql_template: templates/active_merchants.sql.j2
+independent_sql_template: templates/active_merchants__raw.sql.j2
+checks: [V-SCH-01, V-PK-01, V-COMP-01, V-COMP-02, V-DUAL-01, V-VAR-01, V-TIME-01, V-RERUN-01, V-SQL-01]
+tolerances:
+  V-DUAL-01: {relative: 0.001}
+  V-VAR-01: {relative: 0.25}
+  V-COMP-01: {warn: 0.001, fail: 0.01}
+bcbs239_principles: [3, 4, 8]
+limitations:
+  - "Both templates read raw tables (the group product cannot serve this metric); independence of V-DUAL-01 is weaker than for group-served metrics. See CHANGELOG 1.0.0."
+changelog:
+  - {version: 1.0.0, date: 2025-10-01, change: "Initial approved definition", approved_by: approver-01}

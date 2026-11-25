@@ -147,11 +147,14 @@ Global filters on each dashboard: **period** (month range), **merchant country**
 
 Text tile: "Figures computed by the oversight team from raw sources (independent path). Hover a value for the metric definition and version."
 
+> **`XX` (unknown country).** The country-level RAG status on Risk overview excludes `XX`: it is a data artefact (D2), not a market, and tiny volumes make its ratios meaningless. Its volume is not hidden: Data risk shows it (tile "Unallocated volume (XX)" below), so a data event is never mistaken for a risk event.
+
 ### 4.2 Data risk (BCBS 239)
 
 | Tile | Visualisation | Explore / fields | Notes |
 |---|---|---|---|
 | Open reconciliation breaks | Single value | `dq_status`, V-REC-01 FAIL | Latest scan |
+| Unallocated volume (XX) | Single value + monthly column chart | `ewi_components`, `merchant_country = XX`, settled volume | Visible from 2025-09 (D2); shown here, excluded from the country RAG |
 | Completeness issues | Single value | `dq_status`, V-COMP-01 / V-COMP-02 not PASS | |
 | Incomplete or late partitions | Single value | `timeliness`, status ≠ COMPLETE | |
 | Definition conformity failures | Single value | `dq_status`, V-DEF-01 FAIL | |

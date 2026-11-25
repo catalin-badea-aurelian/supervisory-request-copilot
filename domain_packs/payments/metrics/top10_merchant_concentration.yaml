@@ -1,0 +1,32 @@
+id: top10_merchant_concentration
+version: 1.0.0
+status: approved
+name: "Top-10 merchant concentration"
+owner: "Payments Risk Oversight (fictional role)"
+definition: >
+  Share of settled_volume_eur, within each slice, that comes from the 10 largest merchants of that slice (ties broken by merchant_id).
+unit: ratio
+numerator: top10_volume_eur
+denominator: settled_volume_eur
+attribution: transaction_month
+allowed_dimensions: [period, merchant_country, mcc_group]
+preferred_source: src_transactions
+independent_sources: [src_transactions, src_merchants]
+sql_template: templates/top10_merchant_concentration.sql.j2
+independent_sql_template: templates/top10_merchant_concentration__raw.sql.j2
+checks: [V-SCH-01, V-PK-01, V-COMP-01, V-COMP-02, V-DUAL-01, V-VAR-01, V-TIME-01, V-RERUN-01, V-SQL-01]
+tolerances:
+  V-DUAL-01: {relative: 0.001}
+  V-VAR-01: {relative: 0.25}
+  V-COMP-01: {warn: 0.001, fail: 0.01}
+bcbs239_principles: [3, 4, 7]
+ewi:
+  direction: higher_is_worse
+  amber: 0.30
+  red: 0.40
+  owner: "Payments Risk Oversight (fictional role)"
+  version: 1.0.0
+limitations:
+  - "Both templates read raw tables (the group product cannot serve this metric); independence of V-DUAL-01 is weaker than for group-served metrics. See CHANGELOG 1.0.0."
+changelog:
+  - {version: 1.0.0, date: 2025-10-01, change: "Initial approved definition", approved_by: approver-01}

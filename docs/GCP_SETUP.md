@@ -24,6 +24,7 @@ Project ids are global; add a suffix, for example `spb-oversight-demo-4821`.
 
 1. In the console, open **Billing** and link a billing account to the project. New Google Cloud accounts may be eligible for free-trial credits; check in the console.
 2. Why not sandbox mode: the BigQuery sandbox has restrictions (such as default table expiration and features that are not available) that get in the way of snapshots, batch loads, and the managed MCP server.
+   **Check before `make bq-setup`:** the project must really be linked to the billing account (Billing → project list). Without it BigQuery silently runs in sandbox mode: every table and partition gets a 60-day expiration, and our 2024–2025 partitions are deleted the moment they are loaded (the load job reports success and the tables are empty). The expiration cannot be removed until billing is linked ("Billing has not been enabled for this project"). `make bq-setup` clears the expirations once billing is enabled, and stops with that message otherwise.
 3. Expected cost at this data size is close to zero, because BigQuery has a free monthly usage tier for storage and queries. Check the current limits on the BigQuery pricing page.
 4. Create a budget: **Billing → Budgets & alerts → Create budget**, scope = this project, amount = €10, alert thresholds at 50%, 90%, 100%. Budgets send alerts; they do not stop spending. The hard limit per query is `COPILOT_MAX_BYTES_BILLED`.
 

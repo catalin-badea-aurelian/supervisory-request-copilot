@@ -1,0 +1,46 @@
+# TEST-ONLY. Expected planted defects and the detections they must trigger
+# (docs/PROJECT_SPEC.md section 8.3). Never read by agents, tools or prompts, and never
+# referenced from src/. The validation tests of M2 consume the `detections` blocks.
+as_of: 2025-10-15
+
+defects:
+  D1:
+    description: Duplicated rows (re-processed batch) in the group product
+    table: grp_merchant_monthly
+    slice: {month: 2025-08-01, merchant_country: ES}
+    detections:
+      V-PK-01: FAIL
+      V-REC-01: FAIL
+      V-DUAL-01: FAIL
+  D2:
+    description: Missing merchant country for ~2% of merchants (September onboarding wave)
+    table: src_merchants
+    onboarded_month: 2025-09-01
+    null_merchants_share_of_all: {min: 0.015, max: 0.025}
+    xx_share_of_loaded_september_volume: {min: 0.015}   # >= 1.5x the V-COMP-01 fail threshold (1%)
+    detections:
+      V-COMP-01: FAIL        # for 2025-09
+  D3:
+    description: Incomplete load of the 2025-09 transactions partition by the as-of date
+    tables: [src_transactions, grp_merchant_monthly, meta_load_log]
+    month: 2025-09-01
+    loaded_share_at_as_of: {min: 0.55, max: 0.65}
+    detections:
+      V-TIME-01: FAIL
+      V-REC-01: FAIL         # for 2025-09
+      V-VAR-01: WARN
+  D4:
+    description: Definition drift in the group product cb_rate (count basis) from 2025-09
+    table: grp_merchant_monthly
+    from_month: 2025-09-01
+    detections:
+      V-DEF-01: FAIL         # for 2025-09
+
+risk_events:
+  R1:
+    description: Genuine risk event, not a defect (clean data, all sources consistent)
+    merchant_country: IT
+    month: 2025-06-01
+    mcc_group: travel
+    ewi: red                 # chargeback_rate_value above the red threshold
+    check_fails: none        # V-VAR-01 may WARN

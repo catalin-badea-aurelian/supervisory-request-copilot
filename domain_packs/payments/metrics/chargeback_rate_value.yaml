@@ -1,0 +1,36 @@
+id: chargeback_rate_value
+version: 1.0.0
+status: approved
+name: "Chargeback rate (value)"
+owner: "Payments Risk Oversight (fictional role)"
+definition: >
+  Value of chargebacks raised on settled transactions divided by the value of settled transactions, attributed to the month of the original transaction.
+unit: ratio
+numerator: chargeback_amount_eur
+denominator: settled_volume_eur
+attribution: transaction_month
+allowed_dimensions: [period, merchant_country, mcc_group]
+preferred_source: grp_merchant_monthly
+independent_sources: [src_transactions, src_chargebacks, src_merchants]
+sql_template: templates/chargeback_rate_value.sql.j2
+independent_sql_template: templates/chargeback_rate_value__raw.sql.j2
+reconciles_to:
+  table: ledger_control_totals
+  measures: [settled_volume_eur, chargeback_amount_eur]
+precomputed_columns:
+  - {table: grp_merchant_monthly, column: cb_rate}
+checks: [V-SCH-01, V-PK-01, V-COMP-01, V-COMP-02, V-REC-01, V-DUAL-01, V-DEF-01, V-VAR-01, V-PRIOR-01, V-TIME-01, V-RERUN-01, V-SQL-01]
+tolerances:
+  V-DUAL-01: {relative: 0.001}
+  V-VAR-01: {relative: 0.25}
+  V-COMP-01: {warn: 0.001, fail: 0.01}
+  V-REC-01: {relative: 0.005}
+bcbs239_principles: [3, 4, 5, 6, 7, 9]
+ewi:
+  direction: higher_is_worse
+  amber: 0.006
+  red: 0.009
+  owner: "Payments Risk Oversight (fictional role)"
+  version: 1.0.0
+changelog:
+  - {version: 1.0.0, date: 2025-10-01, change: "Initial approved definition", approved_by: approver-01}

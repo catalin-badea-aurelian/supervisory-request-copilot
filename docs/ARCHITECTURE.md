@@ -367,7 +367,7 @@ Results are sorted by all key columns, decimals rounded to a declared precision 
 | `spb_marts` | Dashboard views generated from the domain pack | deployed by `make views` (owner) |
 
 **Physical design.**
-- `src_transactions` is partitioned by `DATE(txn_ts)`, clustered by `merchant_country, merchant_id`, with `require_partition_filter = TRUE`. Every template must filter on the period, which is also how a real warehouse protects itself.
+- `src_transactions` is partitioned by `DATE(txn_ts)`, clustered by `merchant_id, payment_method` (`merchant_country` is deliberately not denormalised into the source table; it lives in `src_merchants`), with `require_partition_filter = TRUE`. Every template must filter on the period, which is also how a real warehouse protects itself.
 - `src_chargebacks` is partitioned by `DATE(cb_ts)` and clustered by `txn_id`.
 - Small tables (merchants, group product, control tables) are not partitioned.
 
@@ -434,7 +434,7 @@ unit: ratio
 numerator: chargeback_amount_eur
 denominator: settled_volume_eur
 attribution: transaction_month
-allowed_dimensions: [period, merchant_country, mcc_group, payment_method]
+allowed_dimensions: [period, merchant_country, mcc_group]   # group-served: payment_method exists only on raw tables
 preferred_source: grp_merchant_monthly
 independent_sources: [src_transactions, src_chargebacks, src_merchants]
 sql_template: templates/chargeback_rate_value.sql.j2
