@@ -1,6 +1,9 @@
 # TEST-ONLY. Expected planted defects and the detections they must trigger
 # (docs/PROJECT_SPEC.md section 8.3). Never read by agents, tools or prompts, and never
 # referenced from src/. The validation tests of M2 consume the `detections` blocks.
+# A defect must raise exactly its FAIL detections, inside its slice. Besides its own
+# detections it may only raise these WARNs: V-VAR-01 (movements), V-MAT-01 (chargeback
+# maturity window) and V-REC-01 (allocation differences next to an unallocated XX line).
 as_of: 2025-10-15
 
 defects:
