@@ -1,0 +1,29 @@
+-- fraud_loss_rate_bps (independent path). BigQuery Standard SQL; transpiled to DuckDB by the pack compiler.
+WITH facts AS (
+  SELECT DATE(t.txn_ts) AS period_date, COALESCE(m.merchant_country, 'XX') AS merchant_country,
+         m.mcc_group, t.payment_method, t.amount_eur AS volume_eur, CAST(0 AS NUMERIC) AS loss_eur
+  FROM {{ source('src_transactions') }} AS t
+  LEFT JOIN {{ source('src_merchants') }} AS m ON m.merchant_id = t.merchant_id
+  WHERE TRUE
+    AND t.txn_ts >= TIMESTAMP(@period_start)
+    AND t.txn_ts < TIMESTAMP(DATE_ADD(@period_end, INTERVAL 1 DAY))
+    AND DATE(t._loaded_at) <= @as_of
+    AND t.status IN ('settled', 'refunded')
+  UNION ALL
+  SELECT DATE(t.txn_ts), COALESCE(m.merchant_country, 'XX'), m.mcc_group, t.payment_method,
+         CAST(0 AS NUMERIC), f.loss_eur
+  FROM {{ source('src_fraud_losses') }} AS f
+  JOIN {{ source('src_transactions') }} AS t ON t.txn_id = f.txn_id
+  LEFT JOIN {{ source('src_merchants') }} AS m ON m.merchant_id = t.merchant_id
+  WHERE DATE(f._loaded_at) <= @as_of
+    AND t.txn_ts >= TIMESTAMP(@period_start)
+    AND t.txn_ts < TIMESTAMP(DATE_ADD(@period_end, INTERVAL 1 DAY))
+    AND DATE(t._loaded_at) <= @as_of
+    AND t.status IN ('settled', 'refunded')
+)
+SELECT {{ dims_lead }}SUM(loss_eur) AS fraud_loss_eur,
+  SUM(volume_eur) AS settled_volume_eur,
+  SAFE_DIVIDE(CAST(SUM(loss_eur) AS FLOAT64), CAST(SUM(volume_eur) AS FLOAT64)) * 10000 AS fraud_loss_rate_bps
+FROM facts
+WHERE TRUE {{ filters_sql }}
+{{ group_sql }}

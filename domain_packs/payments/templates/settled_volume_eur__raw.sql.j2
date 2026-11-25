@@ -1,0 +1,17 @@
+-- settled_volume_eur (independent path). BigQuery Standard SQL; transpiled to DuckDB by the pack compiler.
+WITH base AS (
+  SELECT t.merchant_id, DATE(t.txn_ts) AS period_date,
+         COALESCE(m.merchant_country, 'XX') AS merchant_country, m.mcc_group,
+         t.payment_method, t.status, t.amount_eur
+  FROM {{ source('src_transactions') }} AS t
+  LEFT JOIN {{ source('src_merchants') }} AS m ON m.merchant_id = t.merchant_id
+  WHERE TRUE
+    AND t.txn_ts >= TIMESTAMP(@period_start)
+    AND t.txn_ts < TIMESTAMP(DATE_ADD(@period_end, INTERVAL 1 DAY))
+    AND DATE(t._loaded_at) <= @as_of
+    AND t.status IN ('settled', 'refunded')
+)
+SELECT {{ dims_lead }}SUM(amount_eur) AS settled_volume_eur
+FROM base
+WHERE TRUE {{ filters_sql }}
+{{ group_sql }}

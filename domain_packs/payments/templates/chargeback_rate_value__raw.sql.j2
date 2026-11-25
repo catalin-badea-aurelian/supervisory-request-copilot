@@ -1,0 +1,31 @@
+-- chargeback_rate_value (independent path). BigQuery Standard SQL; transpiled to DuckDB by the pack compiler.
+WITH settled AS (
+  SELECT t.txn_id, t.merchant_id, DATE(t.txn_ts) AS period_date,
+         COALESCE(m.merchant_country, 'XX') AS merchant_country, m.mcc_group,
+         t.payment_method, t.amount_eur
+  FROM {{ source('src_transactions') }} AS t
+  LEFT JOIN {{ source('src_merchants') }} AS m ON m.merchant_id = t.merchant_id
+  WHERE TRUE
+    AND t.txn_ts >= TIMESTAMP(@period_start)
+    AND t.txn_ts < TIMESTAMP(DATE_ADD(@period_end, INTERVAL 1 DAY))
+    AND DATE(t._loaded_at) <= @as_of
+    AND t.status IN ('settled', 'refunded')
+),
+cb AS (
+  SELECT txn_id, COUNT(*) AS cb_count, SUM(amount_eur) AS cb_amount_eur
+  FROM {{ source('src_chargebacks') }}
+  WHERE DATE(_loaded_at) <= @as_of
+  GROUP BY txn_id
+),
+base AS (
+  SELECT s.period_date, s.merchant_country, s.mcc_group, s.payment_method, s.amount_eur,
+         COALESCE(c.cb_count, 0) AS cb_count, COALESCE(c.cb_amount_eur, 0) AS cb_amount_eur
+  FROM settled AS s
+  LEFT JOIN cb AS c ON c.txn_id = s.txn_id
+)
+SELECT {{ dims_lead }}SUM(cb_amount_eur) AS chargeback_amount_eur,
+  SUM(amount_eur) AS settled_volume_eur,
+  SAFE_DIVIDE(CAST(SUM(cb_amount_eur) AS FLOAT64), CAST(SUM(amount_eur) AS FLOAT64)) AS chargeback_rate_value
+FROM base
+WHERE TRUE {{ filters_sql }}
+{{ group_sql }}

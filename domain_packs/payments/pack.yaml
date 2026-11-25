@@ -1,0 +1,35 @@
+id: payments
+version: 1.0.0
+name: Payments
+entity: Synthetic Payments Bank (SPB)
+data_range: {start: 2024-10-01, end: 2025-09-30}
+default_as_of: 2025-10-15
+unknown_country_code: XX
+sources:
+  src_merchants: {layer: raw, description: "Merchant master"}
+  src_transactions: {layer: raw, description: "Card and wallet transactions"}
+  src_chargebacks: {layer: raw, description: "Chargeback events"}
+  src_fraud_losses: {layer: raw, description: "Confirmed fraud losses"}
+  grp_merchant_monthly: {layer: group, description: "Parent-group monthly data product"}
+  ledger_control_totals: {layer: control, description: "Ledger control totals"}
+  prior_submissions: {layer: control, description: "Figures submitted previously"}
+  ewi_thresholds: {layer: control, description: "Early-warning thresholds"}
+  meta_load_log: {layer: raw, description: "Load log per table and month"}
+dimensions:
+  merchant_country:
+    description: Country of the merchant (XX = unknown)
+    values: [DE, FR, ES, IT, NL, BE, LU, IE, XX]
+  mcc_group:
+    description: Merchant category group
+    values: [grocery, restaurants, travel, fashion, electronics, digital_services,
+             utilities, health, entertainment, other]
+  payment_method:
+    description: Payment method
+    values: [card, wallet]
+defaults:
+  V-REC-01: {relative: 0.005}
+  V-DUAL-01: {relative: 0.001}
+  V-VAR-01: {relative: 0.25}
+  V-COMP-01: {warn: 0.001, fail: 0.01}
+  V-TIME-01: {warn: 0.99, fail: 0.95}
+  V-PRIOR-01: {relative: 0.001}

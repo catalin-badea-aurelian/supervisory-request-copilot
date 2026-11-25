@@ -1,0 +1,14 @@
+-- chargeback_rate_value (preferred source). BigQuery Standard SQL; transpiled to DuckDB by the pack compiler.
+WITH base AS (
+  SELECT month AS period_date, merchant_country, mcc_group,
+         txn_count, settled_volume_eur, cb_count, cb_amount_eur
+  FROM {{ source('grp_merchant_monthly') }}
+  WHERE month BETWEEN @period_start AND @period_end
+    AND DATE(_loaded_at) <= @as_of
+)
+SELECT {{ dims_lead }}SUM(cb_amount_eur) AS chargeback_amount_eur,
+  SUM(settled_volume_eur) AS settled_volume_eur,
+  SAFE_DIVIDE(CAST(SUM(cb_amount_eur) AS FLOAT64), CAST(SUM(settled_volume_eur) AS FLOAT64)) AS chargeback_rate_value
+FROM base
+WHERE TRUE {{ filters_sql }}
+{{ group_sql }}

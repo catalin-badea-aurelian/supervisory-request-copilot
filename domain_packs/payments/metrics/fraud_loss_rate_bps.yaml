@@ -1,0 +1,32 @@
+id: fraud_loss_rate_bps
+version: 1.0.0
+status: approved
+name: "Fraud loss rate (bps)"
+owner: "Payments Risk Oversight (fictional role)"
+definition: >
+  Confirmed fraud losses (EUR) on settled transactions divided by settled_volume_eur, times 10,000, attributed to the month of the original transaction.
+unit: bps
+numerator: fraud_loss_eur
+denominator: settled_volume_eur
+attribution: transaction_month
+allowed_dimensions: [period, merchant_country, mcc_group, payment_method]
+preferred_source: src_transactions
+independent_sources: [src_transactions, src_fraud_losses, src_merchants]
+sql_template: templates/fraud_loss_rate_bps.sql.j2
+independent_sql_template: templates/fraud_loss_rate_bps__raw.sql.j2
+checks: [V-SCH-01, V-PK-01, V-COMP-01, V-COMP-02, V-DUAL-01, V-VAR-01, V-TIME-01, V-RERUN-01, V-SQL-01]
+tolerances:
+  V-DUAL-01: {relative: 0.001}
+  V-VAR-01: {relative: 0.25}
+  V-COMP-01: {warn: 0.001, fail: 0.01}
+bcbs239_principles: [3, 4, 5, 7]
+ewi:
+  direction: higher_is_worse
+  amber: 8
+  red: 12
+  owner: "Payments Risk Oversight (fictional role)"
+  version: 1.0.0
+limitations:
+  - "Both templates read raw tables (the group product cannot serve this metric); independence of V-DUAL-01 is weaker than for group-served metrics. See CHANGELOG 1.0.0."
+changelog:
+  - {version: 1.0.0, date: 2025-10-01, change: "Initial approved definition", approved_by: approver-01}
