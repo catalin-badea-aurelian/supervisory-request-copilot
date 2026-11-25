@@ -406,6 +406,7 @@ Total is about 5.5 minutes; drop S3 or the evals step if time is short.
 ### Open items
 
 - **M2: explicit "unallocated (XX)" line in V-REC-01.** Volume whose merchant country is unknown is published as `XX` in the group product and has no ledger counterpart. With D2 alone, the group product reconciles to the ledger in total, and the per-country shortfalls equal the `XX` volume exactly (tested in M1). V-REC-01 must therefore report `XX` as an explicit unallocated line and reconcile the total, instead of hiding it or raising a per-country FAIL for D2.
+- **M3: snapshot permission.** Verified on the live project: `spb-copilot` with READER on the sources and WRITER on `spb_snapshots` can create a snapshot, but not with an `expiration_timestamp` (and cannot drop it): that needs `bigquery.tables.deleteSnapshot`, which dataset WRITER lacks. Decide in M3 between dataset-level OWNER for `spb-copilot` on `spb_snapshots` only (simplest, still confined to that dataset) or a custom role on that dataset.
 - **M8: `XX` in the dashboards.** See `docs/DASHBOARD_SPEC.md` §4.1 and §4.2.
 
 ## 14. Terms

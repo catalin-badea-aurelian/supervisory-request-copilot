@@ -104,9 +104,12 @@ help = "Generate synthetic data, seed 42 (defects planted)"
 args = [{ name = "target", options = ["--target"], default = "bigquery", help = "bigquery (default, showcase) or duckdb (local)" }]
 
 [tool.poe.tasks.data-clean]
-cmd = "python -m data.generator --target ${target} --no-defects"
-help = "Same as data, without planted defects"
-args = [{ name = "target", options = ["--target"], default = "bigquery", help = "bigquery (default, showcase) or duckdb (local)" }]
+script = "data.generator.__main__:data_clean_task(target, force)"
+help = "Same as data, without planted defects (for bigquery it refuses unless --force is given)"
+args = [
+  { name = "target", options = ["--target"], default = "bigquery", help = "bigquery (default, showcase) or duckdb (local)" },
+  { name = "force", options = ["--force"], type = "boolean", default = false, help = "allow overwriting the demo dataset in BigQuery" },
+]
 
 [tool.poe.tasks.views]
 cmd = "python scripts/_stub.py views M8"

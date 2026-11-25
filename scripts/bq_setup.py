@@ -33,6 +33,29 @@ def _require(settings: Settings) -> None:
         raise SystemExit("BQ_LOCATION must be EU (data residency)")
 
 
+def clear_sandbox_expirations(client, datasets) -> None:
+    """Without billing, BigQuery runs in sandbox mode and forces a 60-day expiration on every
+    table and partition, which silently deletes our 2024-2025 partitions. Clear it; if billing
+    is not enabled, stop with a clear message (billing is the owner's decision)."""
+    from google.api_core.exceptions import Forbidden
+
+    for ds in datasets.values():
+        if ds.default_table_expiration_ms is None and ds.default_partition_expiration_ms is None:
+            continue
+        ds.default_table_expiration_ms = None
+        ds.default_partition_expiration_ms = None
+        try:
+            client.update_dataset(
+                ds, ["default_table_expiration_ms", "default_partition_expiration_ms"]
+            )
+        except Forbidden as exc:
+            raise SystemExit(
+                f"{ds.dataset_id} has a default expiration that cannot be cleared: {exc.message}\n"
+                "Link a billing account to the project (the free trial is enough), then re-run."
+            ) from None
+        print(f"cleared default expirations on {ds.dataset_id}")
+
+
 def apply(settings: Settings) -> None:
     from google.api_core.exceptions import Conflict
     from google.cloud import bigquery
@@ -58,10 +81,18 @@ def apply(settings: Settings) -> None:
         return ds
 
     datasets = {layer: ensure_dataset(layer) for layer in spec.LAYERS}
+    clear_sandbox_expirations(client, datasets)
 
     def add_entries(ds: bigquery.Dataset, entries: list[bigquery.AccessEntry]) -> None:
-        current = {(e.role, e.entity_type, str(e.entity_id)) for e in ds.access_entries}
-        new = [e for e in entries if (e.role, e.entity_type, str(e.entity_id)) not in current]
+        ds = client.get_dataset(ds.reference)  # fresh etag: earlier updates changed the dataset
+
+        def key(e: bigquery.AccessEntry) -> tuple:
+            if e.entity_type == "dataset":  # authorised dataset: identify by the viewer dataset
+                return ("dataset", e.entity_id["dataset"]["datasetId"])
+            return (e.role, e.entity_type, str(e.entity_id).lower())
+
+        current = {key(e) for e in ds.access_entries}
+        new = [e for e in entries if key(e) not in current]
         if new:
             ds.access_entries = [*ds.access_entries, *new]
             client.update_dataset(ds, ["access_entries"])
@@ -76,7 +107,12 @@ def apply(settings: Settings) -> None:
         viewer_ref = datasets[viewer].reference.to_api_repr()
         for src in sources:
             add_entries(
-                datasets[src], [bigquery.AccessEntry(None, "dataset", {"dataset": viewer_ref})]
+                datasets[src],
+                [
+                    bigquery.AccessEntry(
+                        None, "dataset", {"dataset": viewer_ref, "target_types": ["VIEWS"]}
+                    )
+                ],
             )
 
     for t in spec.TABLES:
@@ -91,6 +127,16 @@ def apply(settings: Settings) -> None:
         if t.require_partition_filter:
             table.require_partition_filter = True
         client.create_table(table, exists_ok=True)
+        live = client.get_table(table.reference)
+        fields = []
+        if live.expires is not None:
+            live.expires = None
+            fields.append("expires")
+        if live.time_partitioning and live.time_partitioning.expiration_ms is not None:
+            live.time_partitioning.expiration_ms = None
+            fields.append("time_partitioning")
+        if fields:
+            client.update_table(live, fields)
         print(f"table   {t.layer}.{t.name} ready")
 
 
