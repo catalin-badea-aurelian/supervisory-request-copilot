@@ -403,6 +403,11 @@ Total is about 5.5 minutes; drop S3 or the evals step if time is short.
 - **Single-user demo:** segregation of duties is represented by roles in the audit log, not enforced by identity management.
 - **Time-boxed BI environment:** the Looker trial lasts 30 days and is limited to a few users, so dashboards are shown live only during that window; afterwards the evidence is the LookML in Git, the screenshots and the video. If the trial is not deleted in time it converts to a paid instance.
 
+### Open items
+
+- **M2: explicit "unallocated (XX)" line in V-REC-01.** Volume whose merchant country is unknown is published as `XX` in the group product and has no ledger counterpart. With D2 alone, the group product reconciles to the ledger in total, and the per-country shortfalls equal the `XX` volume exactly (tested in M1). V-REC-01 must therefore report `XX` as an explicit unallocated line and reconcile the total, instead of hiding it or raising a per-country FAIL for D2.
+- **M8: `XX` in the dashboards.** See `docs/DASHBOARD_SPEC.md` §4.1 and §4.2.
+
 ## 14. Terms
 
 | Term | Meaning |

@@ -21,6 +21,11 @@ dependencies = [
 [project.scripts]
 copilot = "copilot.cli:app"
 
+[project.optional-dependencies]
+bigquery = [
+    "google-cloud-bigquery>=3.47.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -90,8 +95,8 @@ cmd = "pytest"
 help = "pytest (no network, no LLM calls)"
 
 [tool.poe.tasks.bq-setup]
-cmd = "python scripts/_stub.py bq-setup M1"
-help = "Create EU datasets and dataset-level access (not yet implemented, lands in M1)"
+cmd = "python scripts/bq_setup.py"
+help = "Print the BigQuery setup plan (dry run); add --apply to create EU datasets, access and tables"
 
 [tool.poe.tasks.data]
 cmd = "python -m data.generator --target ${target}"
