@@ -1,0 +1,28 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+.mcp.json.local
+*.key.json
+*-key.json
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Data and runtime artefacts (regenerable from seed / runtime)
+data/*.duckdb
+data/*.parquet
+data/parquet/
+runs/
+corpus/
+
+# Editors / OS
+.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
