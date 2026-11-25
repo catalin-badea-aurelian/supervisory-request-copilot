@@ -1,0 +1,120 @@
+[project]
+name = "supervisory-request-copilot"
+version = "0.1.0"
+description = "Supervisory Request Copilot — a governed, agentic workflow for second-line (2LoD) risk data oversight at a fictional EU payments institution."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Catalin Badea" }]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+copilot = "copilot.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/copilot"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pytest>=8.3",
+    "pre-commit>=4.0",
+    "poethepoet>=0.31",
+    "typer>=0.15",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Scoped to the code we own. docs/*.md contain illustrative Python/SQL
+# snippets in fenced blocks that ruff format would otherwise try to reformat.
+include = ["src/**/*.py", "tests/**/*.py", "scripts/**/*.py", "*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+disallow_untyped_defs = false
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+# --------------------------------------------------------------------------
+# Task runner (poethepoet). Command names match docs/CLAUDE.md exactly.
+# Windows: `uv run poe <task>`. Linux/macOS/CI: `make <task>` (thin Makefile
+# that delegates to the same poe task) — see CLAUDE.md "Development
+# environment". Every task not yet implemented fails loudly (exit 1) rather
+# than silently succeeding, so a milestone can never be skipped by accident.
+# --------------------------------------------------------------------------
+
+[tool.poe.tasks]
+
+[tool.poe.tasks.setup]
+help = "uv sync + pre-commit install"
+sequence = ["_setup-sync", "_setup-precommit"]
+
+[tool.poe.tasks._setup-sync]
+cmd = "uv sync"
+help = "Internal: sync dependencies"
+
+[tool.poe.tasks._setup-precommit]
+cmd = "pre-commit install"
+help = "Internal: install pre-commit hooks"
+
+[tool.poe.tasks.test]
+cmd = "pytest"
+help = "pytest (no network, no LLM calls)"
+
+[tool.poe.tasks.bq-setup]
+cmd = "python scripts/_stub.py bq-setup M1"
+help = "Create EU datasets and dataset-level access (not yet implemented, lands in M1)"
+
+[tool.poe.tasks.data]
+cmd = "python scripts/_stub.py data M1 --target ${target}"
+help = "Generate synthetic data, seed 42 (not yet implemented, lands in M1)"
+args = [{ name = "target", options = ["--target"], default = "bigquery", help = "bigquery (default, showcase) or duckdb (local)" }]
+
+[tool.poe.tasks.data-clean]
+cmd = "python scripts/_stub.py data-clean M1 --target ${target}"
+help = "Same as data, without planted defects (not yet implemented, lands in M1)"
+args = [{ name = "target", options = ["--target"], default = "bigquery", help = "bigquery (default, showcase) or duckdb (local)" }]
+
+[tool.poe.tasks.views]
+cmd = "python scripts/_stub.py views M8"
+help = "Generate mart views from the domain pack into spb_marts (not yet implemented, lands in M8)"
+
+[tool.poe.tasks.lookml]
+cmd = "python scripts/_stub.py lookml M8"
+help = "Generate LookML from the domain pack into looker/ (not yet implemented, lands in M8)"
+
+[tool.poe.tasks.lookml-publish]
+cmd = "python scripts/_stub.py lookml-publish M8"
+help = "Push looker/ to the Looker project repo (not yet implemented, lands in M8)"
+
+[tool.poe.tasks.lookml-check]
+cmd = "python scripts/_stub.py lookml-check M8"
+help = "Validate the LookML project and run the dashboard consistency test (not yet implemented, lands in M8)"
+
+[tool.poe.tasks.verify-iam]
+cmd = "python scripts/_stub.py verify-iam M3"
+help = "Prove least privilege: denied writes, denied reads, SQL policy, byte limit (not yet implemented, lands in M3)"
+
+[tool.poe.tasks.corpus]
+cmd = "python scripts/fetch_corpus.py"
+help = "Fetch and index the BCBS 239 corpus (not yet implemented, lands in M5)"
+
+[tool.poe.tasks.eval]
+cmd = "python scripts/_stub.py eval M7"
+help = "Evaluation harness -> evals/REPORT.md (not yet implemented, lands in M7)"
+
+[tool.poe.tasks.demo]
+cmd = "python scripts/_stub.py demo M7"
+help = "Run the demo scenarios end to end with scripted human answers (not yet implemented, lands in M7)"

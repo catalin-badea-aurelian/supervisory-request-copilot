@@ -113,6 +113,7 @@ copilot mcp serve   # start the governed-data MCP server (usable from Claude Des
 - The primary development machine runs **Windows** (PowerShell, VS Code). CI runs on Linux.
 - Line endings are LF in the repository and the working copy (`.gitattributes`).
 - `make` is not installed on Windows by default. In M0, either document how to install GNU Make on Windows, or provide a cross-platform task runner that exposes the same command names listed above. Do not let the Windows setup change the command names in this file.
+  - Resolved in M0: every command above is a `poethepoet` task in `pyproject.toml`. On Windows, run `uv run poe <task>` (e.g. `uv run poe data --target duckdb`). On Linux/macOS/CI, the thin `Makefile` delegates `make <target>` to the same poe task, so `make data TARGET=duckdb` still works. The command names never change between the two.
 - Paths in code use `pathlib`; no hard-coded separators.
 
 ## Build order
@@ -121,7 +122,7 @@ Follow the milestones in `docs/PROJECT_SPEC.md` §9 **in order**. Do not start a
 
 The validation engine (M2) is built and fully tested **before** any LLM agent exists.
 
-The MVP is **M0–M5 plus M8** (Looker oversight dashboard). M8 can start as soon as M2 is done, because the dashboards read the marts and the DQ scan output, not the agents.
+The MVP is **M0–M5 plus M8** (Looker oversight dashboard). M8a can start as soon as **M3** is done — the dashboards read the marts and the DQ scan output, not the agents, but `copilot dq scan` and the ops export need the guarded data-access layer (snapshots, SQL policy) built in M3, not just the check catalogue from M2.
 
 **Looker trial timing:** do everything in M8 that does not need an instance first (mart views, LookML generation, unit tests on the generated LookML). Ask the user to create the trial instance only then, so the 30-day window is used for validation, iteration and the live demo.
 
