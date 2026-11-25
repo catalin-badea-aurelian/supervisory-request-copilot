@@ -1,0 +1,6 @@
+-- V-REC-01: ledger control totals per month x country for the reconciled measures.
+SELECT period_month AS period, merchant_country, measure, SUM(amount_eur) AS amount_eur
+FROM {{ table(ledger_table) }}
+WHERE period_month BETWEEN @period_start AND @period_end
+  AND measure IN ({{ measures | literals }})
+GROUP BY period_month, merchant_country, measure

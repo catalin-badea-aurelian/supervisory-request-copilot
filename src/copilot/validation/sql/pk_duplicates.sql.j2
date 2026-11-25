@@ -1,0 +1,17 @@
+-- V-PK-01: keys that occur more than once in a source, within the request scope.
+-- Inner slice columns get private aliases: a key column may have the same name.
+WITH k AS (
+  SELECT {{ key_cols | join(', ') }}, COUNT(*) AS _n
+  {%- if period_expr %}, MIN({{ period_expr }}) AS _slice_period{% endif %}
+  {%- if country_col %}, MIN({{ country_col }}) AS _slice_country{% endif %}
+  FROM {{ table(source) }}
+  WHERE DATE(_loaded_at) <= @as_of {{ period_filter }}
+  GROUP BY {{ key_cols | join(', ') }}
+  HAVING COUNT(*) > 1
+)
+SELECT
+  {%- if period_expr %} _slice_period AS period,{% endif %}
+  {%- if country_col %} _slice_country AS merchant_country,{% endif %}
+  COUNT(*) AS duplicate_keys, SUM(_n) AS duplicate_rows
+FROM k
+{% if period_expr or country_col %}GROUP BY {% if period_expr %}_slice_period{% endif %}{% if period_expr and country_col %}, {% endif %}{% if country_col %}_slice_country{% endif %}{% endif %}

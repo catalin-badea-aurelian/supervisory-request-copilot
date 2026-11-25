@@ -1,0 +1,6 @@
+-- V-PRIOR-01: figures submitted before the as-of date for overlapping periods.
+SELECT period, merchant_country, value
+FROM {{ table('prior_submissions') }}
+WHERE metric_id = '{{ metric_id | ident }}'
+  AND period IN ({{ periods | literals }})
+  AND submitted_on <= @as_of

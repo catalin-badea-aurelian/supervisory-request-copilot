@@ -84,7 +84,7 @@ def test_bigquery_uses_named_params_and_resolver(pack) -> None:
 def test_compilation_is_deterministic(pack) -> None:
     a = compile_metric(pack, req(), "preferred", "duckdb")
     b = compile_metric(pack, req(), "preferred", "duckdb")
-    assert a.sql_sha256 == b.sql_sha256 and a.template_id == "chargeback_rate_value@1.0.0:preferred"
+    assert a.sql_sha256 == b.sql_sha256 and a.template_id == "chargeback_rate_value@1.1.0:preferred"
 
 
 def test_filters_render_as_sorted_literals(pack) -> None:

@@ -1,5 +1,5 @@
 id: chargeback_rate_count
-version: 1.0.0
+version: 1.1.0
 status: approved
 name: "Chargebacks per 1,000 settled transactions"
 owner: "Payments Risk Oversight (fictional role)"
@@ -14,11 +14,13 @@ preferred_source: grp_merchant_monthly
 independent_sources: [src_transactions, src_chargebacks, src_merchants]
 sql_template: templates/chargeback_rate_count.sql.j2
 independent_sql_template: templates/chargeback_rate_count__raw.sql.j2
-checks: [V-SCH-01, V-PK-01, V-COMP-01, V-COMP-02, V-DUAL-01, V-VAR-01, V-PRIOR-01, V-TIME-01, V-RERUN-01, V-SQL-01]
+checks: [V-SCH-01, V-PK-01, V-COMP-01, V-COMP-02, V-DUAL-01, V-VAR-01, V-PRIOR-01, V-TIME-01, V-MAT-01, V-RERUN-01, V-SQL-01]
 tolerances:
   V-DUAL-01: {relative: 0.001}
   V-VAR-01: {relative: 0.25}
   V-COMP-01: {warn: 0.001, fail: 0.01}
+maturity_days: 60
 bcbs239_principles: [3, 4, 7, 9]
 changelog:
+  - {version: 1.1.0, date: 2025-10-10, change: "Maturity window (60 days) and check V-MAT-01 added", approved_by: approver-01}
   - {version: 1.0.0, date: 2025-10-01, change: "Initial approved definition", approved_by: approver-01}

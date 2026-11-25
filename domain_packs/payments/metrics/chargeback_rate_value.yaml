@@ -1,5 +1,5 @@
 id: chargeback_rate_value
-version: 1.0.0
+version: 1.1.0
 status: approved
 name: "Chargeback rate (value)"
 owner: "Payments Risk Oversight (fictional role)"
@@ -18,13 +18,15 @@ reconciles_to:
   table: ledger_control_totals
   measures: [settled_volume_eur, chargeback_amount_eur]
 precomputed_columns:
-  - {table: grp_merchant_monthly, column: cb_rate}
-checks: [V-SCH-01, V-PK-01, V-COMP-01, V-COMP-02, V-REC-01, V-DUAL-01, V-DEF-01, V-VAR-01, V-PRIOR-01, V-TIME-01, V-RERUN-01, V-SQL-01]
+  - {table: grp_merchant_monthly, column: cb_rate,
+     numerator_column: cb_amount_eur, denominator_column: settled_volume_eur}
+checks: [V-SCH-01, V-PK-01, V-COMP-01, V-COMP-02, V-REC-01, V-DUAL-01, V-DEF-01, V-VAR-01, V-PRIOR-01, V-TIME-01, V-MAT-01, V-RERUN-01, V-SQL-01]
 tolerances:
   V-DUAL-01: {relative: 0.001}
   V-VAR-01: {relative: 0.25}
   V-COMP-01: {warn: 0.001, fail: 0.01}
   V-REC-01: {relative: 0.005}
+maturity_days: 60
 bcbs239_principles: [3, 4, 5, 6, 7, 9]
 ewi:
   direction: higher_is_worse
@@ -33,4 +35,5 @@ ewi:
   owner: "Payments Risk Oversight (fictional role)"
   version: 1.0.0
 changelog:
+  - {version: 1.1.0, date: 2025-10-10, change: "Maturity window (60 days) and check V-MAT-01 added", approved_by: approver-01}
   - {version: 1.0.0, date: 2025-10-01, change: "Initial approved definition", approved_by: approver-01}

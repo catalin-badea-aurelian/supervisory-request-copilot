@@ -1,16 +1,21 @@
 id: payments
-version: 1.0.0
+version: 1.1.0
 name: Payments
 entity: Synthetic Payments Bank (SPB)
 data_range: {start: 2024-10-01, end: 2025-09-30}
 default_as_of: 2025-10-15
 unknown_country_code: XX
 sources:
-  src_merchants: {layer: raw, description: "Merchant master"}
-  src_transactions: {layer: raw, description: "Card and wallet transactions"}
-  src_chargebacks: {layer: raw, description: "Chargeback events"}
-  src_fraud_losses: {layer: raw, description: "Confirmed fraud losses"}
-  grp_merchant_monthly: {layer: group, description: "Parent-group monthly data product"}
+  src_merchants: {layer: raw, description: "Merchant master", primary_key: [merchant_id],
+                  country_column: merchant_country}
+  src_transactions: {layer: raw, description: "Card and wallet transactions", primary_key: [txn_id],
+                     period_column: txn_ts, period_column_type: timestamp}
+  src_chargebacks: {layer: raw, description: "Chargeback events", primary_key: [chargeback_id]}
+  src_fraud_losses: {layer: raw, description: "Confirmed fraud losses", primary_key: [loss_id]}
+  grp_merchant_monthly: {layer: group, description: "Parent-group monthly data product",
+                         primary_key: [month, merchant_country, mcc_group],
+                         period_column: month, period_column_type: date,
+                         country_column: merchant_country}
   ledger_control_totals: {layer: control, description: "Ledger control totals"}
   prior_submissions: {layer: control, description: "Figures submitted previously"}
   ewi_thresholds: {layer: control, description: "Early-warning thresholds"}
@@ -33,3 +38,4 @@ defaults:
   V-COMP-01: {warn: 0.001, fail: 0.01}
   V-TIME-01: {warn: 0.99, fail: 0.95}
   V-PRIOR-01: {relative: 0.001}
+  V-DEF-01: {absolute: 1.0e-9}

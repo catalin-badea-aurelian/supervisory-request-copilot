@@ -1,0 +1,8 @@
+-- V-DEF-01: rows of a data product with a pre-computed metric column and its components.
+SELECT {{ period_expr }} AS period,
+  {% if country_col %}{{ country_col }}{% else %}CAST(NULL AS STRING){% endif %} AS merchant_country,
+  CAST({{ column }} AS FLOAT64) AS published,
+  CAST({{ numerator }} AS FLOAT64) AS numerator,
+  CAST({{ denominator }} AS FLOAT64) AS denominator
+FROM {{ table(source) }}
+WHERE DATE(_loaded_at) <= @as_of {{ period_filter }} {{ extra_filter }}

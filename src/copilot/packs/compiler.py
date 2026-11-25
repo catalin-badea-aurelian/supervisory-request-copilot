@@ -55,6 +55,7 @@ class CompiledQuery:
     sql: str
     sql_sha256: str
     params: dict[str, Any]
+    sources: tuple[str, ...] = ()  # pack sources the rendered template reads
 
 
 def _validate_period(req: MetricRequest) -> None:
@@ -134,12 +135,15 @@ def compile_metric(
     template_rel = metric.sql_template if path == "preferred" else metric.independent_sql_template
     template_text = (Path(pack.root) / template_rel).read_text(encoding="utf-8")
 
+    read: set[str] = set()
+
     def source(name: str) -> str:
         src = pack.pack.sources.get(name)
         if src is None or src.layer == "control":
             raise CompileError(f"source {name!r} is not available to metric templates")
         if path == "independent" and src.layer == "group":
             raise CompileError("the independent path may not read the group data product")
+        read.add(name)
         if dialect == "bigquery":
             if source_resolver is None:
                 raise CompileError("a source resolver is required for BigQuery")
@@ -171,4 +175,5 @@ def compile_metric(
         sql=sql,
         sql_sha256=digest,
         params=params,
+        sources=tuple(sorted(read)),
     )
