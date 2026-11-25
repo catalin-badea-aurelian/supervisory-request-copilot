@@ -6,7 +6,17 @@ readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Catalin Badea" }]
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "duckdb>=2.0.1",
+    "jinja2>=3.1.6",
+    "numpy>=2.4.6",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+    "pydantic>=2.14.4",
+    "python-dotenv>=1.2.4",
+    "pyyaml>=6.0.4",
+    "sqlglot>=30.35.0",
+]
 
 [project.scripts]
 copilot = "copilot.cli:app"
@@ -46,6 +56,12 @@ warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-m 'not bigquery'"
+markers = [
+    "bigquery: needs a live BigQuery project (run manually, never in CI)",
+    "slow: full-scale data generation",
+]
 
 # --------------------------------------------------------------------------
 # Task runner (poethepoet). Command names match docs/CLAUDE.md exactly.
@@ -78,13 +94,13 @@ cmd = "python scripts/_stub.py bq-setup M1"
 help = "Create EU datasets and dataset-level access (not yet implemented, lands in M1)"
 
 [tool.poe.tasks.data]
-cmd = "python scripts/_stub.py data M1 --target ${target}"
-help = "Generate synthetic data, seed 42 (not yet implemented, lands in M1)"
+cmd = "python -m data.generator --target ${target}"
+help = "Generate synthetic data, seed 42 (defects planted)"
 args = [{ name = "target", options = ["--target"], default = "bigquery", help = "bigquery (default, showcase) or duckdb (local)" }]
 
 [tool.poe.tasks.data-clean]
-cmd = "python scripts/_stub.py data-clean M1 --target ${target}"
-help = "Same as data, without planted defects (not yet implemented, lands in M1)"
+cmd = "python -m data.generator --target ${target} --no-defects"
+help = "Same as data, without planted defects"
 args = [{ name = "target", options = ["--target"], default = "bigquery", help = "bigquery (default, showcase) or duckdb (local)" }]
 
 [tool.poe.tasks.views]

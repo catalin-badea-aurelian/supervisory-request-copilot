@@ -119,7 +119,7 @@ Expected behaviour:
 
 1. Intake and G1 as in S1.
 2. Analyst produces the primary result from `grp_merchant_monthly`.
-3. Validation: **V-REC-01** (reconciliation to ledger) FAILS for ES / 2025-08 beyond tolerance; **V-DUAL-01** (independent recomputation from raw sources) disagrees for the same slice.
+3. Validation: **V-PK-01** (key uniqueness on the group product) FAILS on the duplicated ES / 2025-08 keys; **V-REC-01** (reconciliation to ledger) FAILS for ES / 2025-08 beyond tolerance; **V-DUAL-01** (independent recomputation from raw sources) disagrees for the same slice.
 4. Workflow halts at **G2** with an escalation note: what failed, magnitude, slices affected, likely cause (duplicate keys detected), and options:
    - (a) deliver from the independent raw-source path, with the limitation documented
    - (b) hold and raise an issue to the data owner
@@ -279,7 +279,7 @@ All defects sit in **August–September 2025**, so requests up to July 2025 run 
 
 | ID | Defect | Where | Must be detected by |
 |---|---|---|---|
-| **D1** | Duplicated rows (re-processed batch) | `grp_merchant_monthly`, ES, 2025-08 | V-REC-01 FAIL, V-DUAL-01 FAIL |
+| **D1** | Duplicated rows (re-processed batch) | `grp_merchant_monthly`, ES, 2025-08 | V-PK-01 FAIL (duplicate group keys), V-REC-01 FAIL, V-DUAL-01 FAIL |
 | **D2** | Missing merchant country for ~2% of merchants onboarded in 2025-09 | `src_merchants` (propagates as `XX` to the group product) | V-COMP-01 FAIL for 2025-09 |
 | **D3** | Incomplete load: only ~60% of the 2025-09 transactions partition loaded by the as-of date; the group product was built on the same partial load | `src_transactions`, `grp_merchant_monthly`, `meta_load_log` | V-TIME-01 FAIL, V-REC-01 FAIL for 2025-09, V-VAR-01 WARN |
 | **D4** | Definition drift: from 2025-09 the group product's `cb_rate` is computed by count instead of value | `grp_merchant_monthly.cb_rate` | V-DEF-01 FAIL for 2025-09 |
