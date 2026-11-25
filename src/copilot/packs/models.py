@@ -17,6 +17,12 @@ class _Strict(BaseModel):
 class SourceDef(_Strict):
     layer: Literal["raw", "group", "control"]
     description: str = ""
+    # Used by the validation engine (V-PK-01): key columns, and the columns that place a
+    # duplicate in a period and a country when the table has them.
+    primary_key: list[str] = Field(default_factory=list)
+    period_column: str | None = None
+    period_column_type: Literal["date", "timestamp"] | None = None
+    country_column: str | None = None
 
 
 class DimensionDef(_Strict):
@@ -58,8 +64,15 @@ class ReconcilesTo(_Strict):
 
 
 class PrecomputedColumn(_Strict):
+    """A metric column published pre-computed by a data product (checked by V-DEF-01).
+
+    The glossary recomputation is numerator_column / denominator_column on the same row.
+    """
+
     table: str
     column: str
+    numerator_column: str
+    denominator_column: str
 
 
 class MetricDef(_Strict):
@@ -84,6 +97,8 @@ class MetricDef(_Strict):
     tolerances: dict[str, dict[str, float]] = Field(default_factory=dict)
     bcbs239_principles: list[int] = Field(default_factory=list)
     ewi: EwiDef | None = None
+    # Days after a period end before the metric's events are complete (V-MAT-01).
+    maturity_days: int | None = None
     limitations: list[str] = Field(default_factory=list)
     changelog: list[ChangelogEntry] = Field(default_factory=list)
 

@@ -498,22 +498,41 @@ Filter values are validated against the allowed values in the pack before render
 | V-TIME-01 | Data freshness | `meta_load_log` shows sources complete up to the as-of date | P5 | WARN / FAIL |
 | V-RERUN-01 | Determinism | Re-executing on the same snapshot gives an identical result hash | P3 | FAIL |
 | V-SQL-01 | Query policy | Template used; any non-template query flagged | P1, P2 | WARN |
+| V-MAT-01 | Maturity window | Months whose end + the metric's `maturity_days` is after the as-of date are flagged as not yet complete (e.g. chargebacks still to arrive) | P5, P7 | WARN (never FAIL) |
+
+Notes on the non-obvious checks:
+
+- **V-PK-01** covers every source the metric reads: the union of the sources read by the preferred and the independent template (the compiler records them in `CompiledQuery.sources`), so the parent-group product is included for every metric it serves. Primary keys, period and country columns are declared per source in `pack.yaml`. Duplicates are counted within the request period and as-of date.
+- **V-REC-01** recompiles the metric at month × country on the delivered path without filters, so the unknown country (`XX`) stays visible. Per month and measure it reports a total line (all countries + `XX` vs the ledger), an explicit **unallocated (XX)** line, and the breaking country lines. A country above the ledger, or a shortfall not covered by unallocated volume, is FAIL. Shortfalls covered by unallocated volume with a reconciling total are WARN (allocation differences: nothing is lost, it is only mis-allocated; V-COMP-01 reports the root cause).
+- **V-DUAL-01** compares with the *other* path (the independent one, or the preferred one when the independent path was delivered after G2). Both results get the same key normalisation first: a missing or empty merchant country becomes `XX`, so a missing country cannot cause a path mismatch.
+- **V-COMP-01, V-VAR-01, V-PRIOR-01** recompile the governed metric at the grain they need (month; one period earlier; quarter × country) instead of hand-writing metric logic.
+- **WARN-only checks** (V-VAR-01, V-PRIOR-01, V-MAT-01, V-SQL-01) cannot return FAIL; the runner enforces it.
+- Every affected slice carries its own status (WARN or FAIL), so one result can be FAIL in one month and WARN in another; `ops_check_results` gets one row per check × slice.
 
 ### 9.2 Runner
 
 ```python
-def run_checks(spec, analysis, pack, backend) -> ValidationReport:
+@dataclass(frozen=True)
+class ValidationTarget:            # validation/target.py
+    request_id: str
+    request: MetricRequest         # metric, period, grain, dims, filters, as-of
+    primary: CompiledQuery         # the delivered query (path, SQL, params, sources)
+    primary_result: pd.DataFrame
+    non_template: bool = False
+
+def run_checks(targets, pack, backend, resolver=None) -> ValidationReport:
     results = []
-    for metric_id in spec.metrics:
-        metric = pack.metrics[metric_id]
+    for t in targets:
+        metric = pack.metrics[t.request.metric_id]
         for check_id in metric.checks:
-            check = REGISTRY[check_id]
-            results.append(check(spec, analysis, metric, backend,
-                                 thresholds=metric.tolerances.get(check_id, pack.defaults[check_id])))
-    return ValidationReport.build(spec.request_id, results)  # computes report_sha256
+            spec = REGISTRY[check_id]
+            thresholds = {**pack.defaults.get(check_id, {}), **metric.tolerances.get(check_id, {})}
+            evidence = spec.gather(CheckContext(pack, metric, t, backend, resolver))  # read-only I/O
+            results.append(spec.evaluate(evidence, thresholds))                     # pure
+    return ValidationReport.build(request_id, results)  # sorted; computes report_sha256
 ```
 
-Each check is a pure function over (spec, results, metric, read-only backend). It returns measured values and affected slices, so a human can see *where* and *by how much* something failed, not just that it failed.
+Each check is split into `gather` (read-only queries: recompiled governed templates and the engine's own SQL in `validation/sql/`, which may read control tables) and `evaluate`, a pure function of the evidence and the thresholds from the domain pack. It returns measured values and affected slices, so a human can see *where* and *by how much* something failed, not just that it failed. The Analyst's `AnalysisResult` (M4) maps to one `ValidationTarget` per metric run.
 
 ### 9.3 Level 2: data-quality scan
 

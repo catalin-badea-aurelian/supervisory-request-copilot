@@ -57,6 +57,21 @@ def small_clean(tmp_path_factory) -> Dataset:
 
 
 @pytest.fixture(scope="session")
+def small_dataset(tmp_path_factory, small_clean, small_default):
+    """Small datasets by name: 'clean', 'all' (every defect) or a single defect 'D1'..'D4'."""
+    cache = {"clean": small_clean, "all": small_default}
+
+    def get(name: str) -> Dataset:
+        if name not in cache:
+            cache[name] = _make(
+                tmp_path_factory.mktemp(f"small_{name}"), name, SMALL_SCALE, (name,)
+            )
+        return cache[name]
+
+    return get
+
+
+@pytest.fixture(scope="session")
 def full_clean(tmp_path_factory) -> Dataset:
     return _make(tmp_path_factory.mktemp("full_clean"), "c", 1.0, ())
 

@@ -30,18 +30,21 @@ def source_resolver(settings: Settings, pack: DomainPack):
 class BigQueryBackend:
     dialect = "bigquery"
 
-    def __init__(self, settings: Settings, component: str = "validation") -> None:
+    def __init__(
+        self, settings: Settings, component: str = "validation", request_id: str = "none"
+    ) -> None:
         self._settings = settings
         self._component = component
+        self._request_id = request_id
         self._client = make_client(settings, impersonate=settings.copilot_sa)
         self.bytes_processed = 0
 
     def query(
-        self, sql: str, params: dict[str, Any] | None = None, request_id: str = "none"
+        self, sql: str, params: dict[str, Any] | None = None, request_id: str | None = None
     ) -> pd.DataFrame:
         from google.cloud import bigquery
 
-        config = query_job_config(self._settings, self._component, request_id)
+        config = query_job_config(self._settings, self._component, request_id or self._request_id)
         config.query_parameters = [
             bigquery.ScalarQueryParameter(k, "DATE", v)
             for k, v in (params or {}).items()

@@ -292,6 +292,11 @@ All defects sit in **August–September 2025**, so requests up to July 2025 run 
 
 R1 lets the demo contrast a **risk event** (R1) with a **data event** (September 2025 defects).
 
+### 8.4a Expected side effects (not defects)
+
+- **Chargeback maturity.** Chargebacks arrive days to weeks after the transaction they belong to, so at the as-of date 2025-10-15 the August and September 2025 chargeback figures are not yet complete. V-MAT-01 WARNs on those months (it can never FAIL); V-VAR-01 may WARN on the resulting September drop. S2 (July–August) therefore carries a V-MAT-01 WARN for August, to be acknowledged at G3.
+- **Collateral WARNs** allowed next to a defect's expected detections: V-VAR-01 (movements), V-MAT-01 (maturity) and V-REC-01 (allocation differences next to an unallocated XX line, D2). A defect never causes a FAIL outside its expected checks and slice.
+
 ### 8.5 Initial glossary (domain pack `payments`)
 
 | Metric id | Definition (summary) |
@@ -405,7 +410,7 @@ Total is about 5.5 minutes; drop S3 or the evals step if time is short.
 
 ### Open items
 
-- **M2: explicit "unallocated (XX)" line in V-REC-01.** Volume whose merchant country is unknown is published as `XX` in the group product and has no ledger counterpart. With D2 alone, the group product reconciles to the ledger in total, and the per-country shortfalls equal the `XX` volume exactly (tested in M1). V-REC-01 must therefore report `XX` as an explicit unallocated line and reconcile the total, instead of hiding it or raising a per-country FAIL for D2.
+- ~~**M2: explicit "unallocated (XX)" line in V-REC-01.**~~ Resolved in M2: V-REC-01 reports a total line, an explicit unallocated (XX) line and the breaking countries. With D2 alone it is WARN (allocation differences covered by the XX volume); V-COMP-01 carries the FAIL (ARCHITECTURE §9.1).
 - **M3: snapshot permission.** Verified on the live project: `spb-copilot` with READER on the sources and WRITER on `spb_snapshots` can create a snapshot, but not with an `expiration_timestamp` (and cannot drop it): that needs `bigquery.tables.deleteSnapshot`, which dataset WRITER lacks. Decide in M3 between dataset-level OWNER for `spb-copilot` on `spb_snapshots` only (simplest, still confined to that dataset) or a custom role on that dataset.
 - **M8: `XX` in the dashboards.** See `docs/DASHBOARD_SPEC.md` §4.1 and §4.2.
 

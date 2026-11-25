@@ -56,3 +56,15 @@ def validate_pack(pk: DomainPack) -> None:
         for d in m.allowed_dimensions:
             if d != "period" and d not in pk.pack.dimensions:
                 raise PackError(f"{m.id}: unknown dimension {d}")
+        if "V-REC-01" in m.checks and m.reconciles_to is None:
+            raise PackError(f"{m.id}: V-REC-01 needs reconciles_to")
+        if "V-DEF-01" in m.checks and not m.precomputed_columns:
+            raise PackError(f"{m.id}: V-DEF-01 needs precomputed_columns")
+        if "V-MAT-01" in m.checks and not m.maturity_days:
+            raise PackError(f"{m.id}: V-MAT-01 needs maturity_days")
+        for pc in m.precomputed_columns:
+            if pc.table not in pk.pack.sources:
+                raise PackError(f"{m.id}: unknown precomputed table {pc.table}")
+    for name, sdef in pk.pack.sources.items():
+        if (sdef.period_column is None) != (sdef.period_column_type is None):
+            raise PackError(f"source {name}: period_column and period_column_type go together")
