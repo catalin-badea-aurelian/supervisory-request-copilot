@@ -65,7 +65,7 @@ flowchart LR
 flowchart TB
     subgraph IF["Interfaces"]
         CLI["CLI - Typer"]
-        MCPS["MCP server - FastMCP"]
+        MCPS["MCP server - MCPServer"]
     end
 
     subgraph WF["Workflow - LangGraph StateGraph"]
@@ -321,31 +321,57 @@ class MetricProposal(BaseModel):
 
 ### 7.1 Backends
 
-One interface, two adapters:
+Every component reaches data through one path (`src/copilot/data/`):
 
-```python
-class Backend(Protocol):
-    dialect: str
-    def snapshot(self, as_of: date) -> str: ...                    # returns snapshot_id
-    def dry_run(self, sql: str, params: dict) -> int | None: ...  # estimated bytes
-    def query(self, sql: str, params: dict, snapshot_id: str) -> pa.Table: ...
-    def describe(self, table: str) -> TableSchema: ...
+```
+open_session(settings, pack, request_id, component, profile)      # session.py
+  -> snapshot (new, stored for a rerun, or live)                   # snapshots.py
+  -> resolver: logical table name -> snapshot table name
+  -> GuardedBackend(executor, SqlPolicy(allowlist of resolved names))   # guarded.py
+       execute(sql, params):
+         SqlPolicy.check(sql)          # policy.py; raises PolicyViolation, nothing is sent
+         executor.dry_run(...)         # BigQuery: estimated bytes > limit -> BytesLimitExceeded
+         executor.run(..., timeout)    # labels + maximum_bytes_billed on every job
+         canonical_hash(result)        # -> QueryRecord(sql_sha256, params, snapshot_id,
+                                       #    bytes, result_sha256, rows, duration)
 ```
 
-- **BigQuery (showcase, primary).** Environment described in §7.4. Snapshots are BigQuery table snapshots taken at the as-of timestamp; their fully qualified names are stored in the manifest.
-- **DuckDB (local mode).** Data is stored as immutable Parquet files generated from the same seed. `snapshot_id` is the SHA-256 of the file manifest (path + content hash). Runs read only the files listed in the snapshot.
+`GuardedBackend` satisfies the validation engine's `ReadBackend` protocol, so the checker
+(profile `validation`) and the maker (profile `metric`) use the same guarded path. Templates
+compile directly against the snapshot names through the resolver, so no SQL is rewritten after
+compilation. Validation through a guarded session reproduces the M2 report hash exactly.
+
+- **BigQuery (showcase, primary).** `BigQueryExecutor`, running as `spb-copilot` through
+  impersonation. Environment in §7.4. Snapshots are BigQuery table snapshots of every pack
+  source, cloned at one instant; their names go into the manifest.
+- **DuckDB (local mode).** `ParquetExecutor`: an in-memory DuckDB connection exposes one view per
+  snapshot file and nothing else (`allowed_paths` set to exactly those files,
+  `enable_external_access=false`, `lock_configuration=true`). `snapshot_id` is the SHA-256 over
+  the sorted `table: file SHA-256` list. A rerun re-hashes the files and fails fast if any of
+  them changed. DuckDB has no statement timeout, so a timer interrupts long queries.
+
+**Profiles.** `metric` allows only the raw and group sources (templates, Analyst, MCP), minus
+any source the pack marks `checker_only` (the load log); `validation` also allows the control
+tables and the load log (ledger, load log, prior submissions, thresholds). The pack loader
+rejects a metric that reads a checker-only or control source.
+
+**As-of in results.** `run_metric` echoes `as_of_applied` and the rule (fact rows loaded after
+the as-of date are excluded; merchant reference data is joined as stored), and explains
+`snapshot_id` (`snapshot_meaning`): it identifies the physical table state read, never the
+business as-of date.
 
 ### 7.2 SQL policy (enforced by a parser)
 
 Every query goes through `sqlglot` before execution:
 
-1. Parse; reject anything that is not a single `SELECT` / `WITH … SELECT`.
-2. Reject DDL, DML, `EXPORT`, scripting, and multiple statements.
-3. Allowlist tables: only those declared in the active domain pack and its control tables.
-4. Exploratory queries (`sample_rows`) get a forced `LIMIT 20`.
-5. BigQuery: dry run first; reject if estimated bytes exceed `COPILOT_MAX_BYTES_BILLED`.
-6. Timeout on every query.
-7. Templates are written in BigQuery Standard SQL and transpiled to DuckDB with `sqlglot`. Golden tests run both dialects where available.
+1. Parse; reject anything that is not exactly one `SELECT` / `WITH … SELECT` / set operation (`not_single_statement`, `not_a_select`).
+2. Reject, anywhere in the tree (including CTEs and subqueries): DDL, DML, `MERGE`, `EXPORT`, scripting (`DECLARE`, `BEGIN`, `CALL`, `SET`), `COPY`, `ATTACH`, `PRAGMA`, `INSTALL`/`LOAD`, `GRANT`/`REVOKE`, `SELECT … INTO`, and unparsed commands (`forbidden_statement`).
+3. Reject table functions and file or remote readers: `read_*`, `EXTERNAL_QUERY`, `glob`, `getenv`, `range(...)` as a table, and so on (`table_function`, `forbidden_function`). `INFORMATION_SCHEMA` is never allowed.
+4. Allowlist tables: every table reference except a CTE name must be one of the session profile's resolved names (`table_not_allowed`). A CTE name never shadows a qualified table.
+5. Exploratory queries (`sample_rows`) get a forced `LIMIT 20` (`enforce_limit`).
+6. BigQuery: dry run first; reject if estimated bytes exceed `COPILOT_MAX_BYTES_BILLED`.
+7. Timeout on every query (`COPILOT_QUERY_TIMEOUT_S`, default 120): `job_timeout_ms` plus a result timeout that cancels the job on BigQuery; an interrupt timer on DuckDB.
+8. Templates are written in BigQuery Standard SQL and transpiled to DuckDB with `sqlglot`. Golden tests run both dialects where available.
 
 ### 7.3 Canonical result hashing
 
@@ -362,7 +388,7 @@ Results are sorted by all key columns, decimals rounded to a declared precision 
 | `spb_raw` | `src_*` source tables, `meta_load_log` | loader |
 | `spb_group` | `grp_merchant_monthly` (the parent-group data product) | loader |
 | `spb_control` | `ledger_control_totals`, `prior_submissions`, `ewi_thresholds` | loader |
-| `spb_snapshots` | Per-run table snapshots (with expiration) | copilot |
+| `spb_snapshots` | Per-run table snapshots (with expiration) | copilot (custom snapshot role, ADR 014) |
 | `spb_ops` | `ops_runs`, `ops_check_results`, `ops_gate_decisions`, `ops_metric_catalog` | copilot |
 | `spb_marts` | Dashboard views generated from the domain pack | deployed by `make views` (owner) |
 
@@ -376,7 +402,7 @@ Results are sorted by all key columns, decimals rounded to a declared precision 
 | Identity | Project roles | Dataset access |
 |---|---|---|
 | `spb-loader` service account | BigQuery Job User | WRITER on `spb_raw`, `spb_group`, `spb_control` |
-| `spb-copilot` service account | BigQuery Job User | READER on `spb_raw`, `spb_group`, `spb_control`, `spb_marts`; WRITER on `spb_snapshots`, `spb_ops` |
+| `spb-copilot` service account | BigQuery Job User | READER on `spb_raw`, `spb_group`, `spb_control`, `spb_marts`; WRITER on `spb_ops`; custom role `spbSnapshotManager` on `spb_snapshots` only (ADR 014) |
 | `spb-looker` service account (Looker → BigQuery connection) | BigQuery Job User | READER on `spb_marts`, `spb_ops` only |
 | Human developer | Owner of the demo project | Impersonates the service accounts (Service Account Token Creator on each) |
 
@@ -384,7 +410,7 @@ The code runs with Application Default Credentials obtained through impersonatio
 
 **Cost and usage controls.**
 - `maximum_bytes_billed` on every job (from `COPILOT_MAX_BYTES_BILLED`); dry run before execution.
-- Job labels on every job: `request_id`, `component` (`analyst`, `validation`, `scan`, `export`), lowercase per BigQuery label rules. They allow cost attribution per request in `INFORMATION_SCHEMA.JOBS`.
+- Job labels on every job: `request_id`, `component` (`analyst`, `validation`, `scan`, `export`, `mcp`, `snapshot`), lowercase per BigQuery label rules. They allow cost attribution per request in `INFORMATION_SCHEMA.JOBS`.
 - Batch load jobs for ops export (no streaming inserts).
 - A billing budget with alerts on the project (see setup guide). Budgets alert; they do not cap spend.
 
@@ -392,15 +418,24 @@ The code runs with Application Default Credentials obtained through impersonatio
 - The **business as-of date** (e.g. 2025-10-15) belongs to the synthetic world. It is applied through data: every source row carries `_loaded_at`, and `meta_load_log` records what was loaded by when. Templates filter `_loaded_at <= @as_of`, which is how D3 (incomplete load) becomes visible.
 - The **system snapshot** freezes the physical state of the tables when the run starts, so later reloads cannot change a past run. BigQuery time travel works on wall-clock time only, so it cannot represent the synthetic as-of date.
 
-**Snapshots.** At the start of the analysis step, the copilot snapshots the tables the run will read:
+**Snapshots.** At the start of a run, the copilot snapshots every pack source at one instant
+(`run_ts`, one minute before now, so it is never ahead of the server clock):
 
 ```sql
 CREATE SNAPSHOT TABLE `PROJECT.spb_snapshots.src_transactions__req_2025_0042`
 CLONE `PROJECT.spb_raw.src_transactions`
-OPTIONS (expiration_timestamp = TIMESTAMP_ADD(CURRENT_TIMESTAMP(), INTERVAL 90 DAY));
+FOR SYSTEM_TIME AS OF TIMESTAMP '2026-11-26T09:36:00+00:00'
+OPTIONS (expiration_timestamp = TIMESTAMP '2027-02-24T09:36:00+00:00')
 ```
 
-Queries in the run are rewritten to point at the snapshots. Snapshot names go into the manifest, so a rerun within the retention window reads exactly the same data. (Verify the exact DDL against current BigQuery documentation when implementing.)
+The expiration is `run_ts + COPILOT_SNAPSHOT_EXPIRATION_DAYS` (default 90). `snapshot_id` is
+the SHA-256 of the project, `run_ts` and the table → snapshot mapping. Templates compile
+against the snapshot names (resolver), so nothing is rewritten. The snapshot DDL is generated
+from the pack, never from agent or user input. It is the only non-SELECT statement the copilot
+identity sends, and it does not go through the SELECT-only policy. A rerun reuses the stored
+mapping and fails fast if any snapshot has expired or been deleted. Validation on a snapshot
+equals validation on the live tables; only the SQL hash differs, because the SQL names
+different tables. MCP calls (Level 1) run on the live tables with `snapshot_id = live@<ts>`.
 
 ## 8. Domain packs
 
@@ -687,6 +722,7 @@ The audit log in the run folder remains the record of truth; `spb_ops` is a repo
 | Validation engine (code) | backend read API | Read-only | Run folder (report) |
 | GD gate handler (code) | pack writer | — | Domain pack (on approval only) |
 | Ops exporter / DQ scan (code) | backend read API, batch load | Read-only on source datasets | `spb_ops`, `spb_snapshots` only |
+| Governed MCP server (`copilot mcp serve`) | `list_metrics`, `get_metric_definition`, `search_catalog`, `describe_table`, `run_metric`; no SQL tool | Governed preferred templates only, through the guarded layer (`component=mcp`), metric profile, at most 1,000 rows returned; definitions without tolerances, check sets or EWI thresholds | Append-only call log (`runs/mcp/calls.jsonl`, replaced by the audit module in M4) |
 | Looker (connection as `spb-looker`) | — | Views in `spb_marts` and tables in `spb_ops` | None |
 | Claude Code via Looker MCP Toolbox (build time) | Looker API as the developer user | LookML project (dev mode), queries | Personal-folder prototypes only; LookML changes go through Git |
 
@@ -801,7 +837,7 @@ supervisory-request-copilot/
 | BI automation | MCP Toolbox for Databases (Looker) | Lets Claude Code validate the project, run queries and prototype dashboards |
 | BI fallback | Looker Studio on the same marts (optional) | Free public view-only link after the trial ends |
 | SQL policy | sqlglot | Real parsing for policy enforcement and dialect transpilation |
-| MCP | Python MCP SDK (FastMCP) | Standard protocol; the same governed layer serves AI assistants (Level 1) and the workflow |
+| MCP | Python MCP SDK 2.x (`MCPServer`, formerly FastMCP) | Standard protocol; the same governed layer serves AI assistants (Level 1) and the workflow |
 | Retrieval | BM25 + small local embeddings | Small corpus; no external vector service; offline and free |
 | Evidence | Jinja2 → Markdown/HTML | Human-readable, diffable, easy to attach |
 | CLI | Typer + Rich | Clear gate prompts in the terminal |
@@ -825,6 +861,7 @@ Full ADRs live in `docs/adr/`. Summary:
 | 011 | Mart views **and** the LookML semantic layer generated from the domain pack; dashboards as LookML | The dashboards, the copilot and AI self-service must not disagree on a definition | Generated files are never edited; manual changes live in refinement files |
 | 012 | Keyless authentication via service-account impersonation | No long-lived secrets to leak; mirrors enterprise practice | Developer needs Token Creator on each service account |
 | 013 | Looker as a time-boxed trial; Git is the permanent record | Realistic BI and semantic layer at no cost | Live demo only within 30 days; rebuild steps must be tested; instance deleted before conversion to paid |
+| 014 | Narrow custom role `spbSnapshotManager` on `spb_snapshots` instead of WRITER/OWNER | Snapshots with expiration need `deleteSnapshot`; OWNER would allow ACL changes and data writes | Residual: the copilot can create an empty ordinary table in that dataset (not write to it or delete it) and can delete other runs' snapshots (their reruns then fail fast) |
 
 ## 20. Controls → BCBS 239 mapping
 

@@ -23,6 +23,9 @@ class SourceDef(_Strict):
     period_column: str | None = None
     period_column_type: Literal["date", "timestamp"] | None = None
     country_column: str | None = None
+    # Readable by the validation engine only, never by metric templates, the Analyst or the
+    # MCP server (e.g. the load log). Control-layer sources are always checker-only.
+    checker_only: bool = False
 
 
 class DimensionDef(_Strict):

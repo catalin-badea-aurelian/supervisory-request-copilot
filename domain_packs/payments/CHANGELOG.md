@@ -1,5 +1,13 @@
 # Domain pack `payments` — changelog
 
+## 1.2.0 — checker-only sources
+
+- Sources may declare `checker_only: true`: readable by the validation engine only, never by
+  metric templates, the Analyst or the governed MCP server. `meta_load_log` is checker-only
+  (it stays in the raw layer, where the loader writes it). Control-layer sources are always
+  checker-only; the pack loader rejects a metric that reads one.
+- No metric definition changes; metric versions are unchanged.
+
 ## 1.1.0 — validation metadata
 
 - Sources declare `primary_key`, and where present `period_column` / `period_column_type` and

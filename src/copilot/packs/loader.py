@@ -65,6 +65,11 @@ def validate_pack(pk: DomainPack) -> None:
         for pc in m.precomputed_columns:
             if pc.table not in pk.pack.sources:
                 raise PackError(f"{m.id}: unknown precomputed table {pc.table}")
+    for m in pk.metrics.values():
+        for src in [m.preferred_source, *m.independent_sources]:
+            sdef = pk.pack.sources[src]
+            if sdef.checker_only or sdef.layer == "control":
+                raise PackError(f"{m.id}: source {src} is checker-only")
     for name, sdef in pk.pack.sources.items():
         if (sdef.period_column is None) != (sdef.period_column_type is None):
             raise PackError(f"source {name}: period_column and period_column_type go together")

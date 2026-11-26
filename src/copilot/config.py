@@ -21,6 +21,9 @@ class Settings:
     copilot_sa: str = ""
     loader_sa: str = ""
     max_bytes_billed: int = 1_000_000_000
+    query_timeout_s: int = 120
+    snapshot_expiration_days: int = 90
+    parquet_dir: Path = REPO_ROOT / "data" / "parquet" / "default"
     model_main: str = "claude-sonnet-5-5"
     model_fast: str = "claude-haiku-5-5"
 
@@ -41,6 +44,11 @@ class Settings:
             copilot_sa=e.get("COPILOT_SA", ""),
             loader_sa=e.get("LOADER_SA", ""),
             max_bytes_billed=int(e.get("COPILOT_MAX_BYTES_BILLED", "1000000000")),
+            query_timeout_s=int(e.get("COPILOT_QUERY_TIMEOUT_S", "120")),
+            snapshot_expiration_days=int(e.get("COPILOT_SNAPSHOT_EXPIRATION_DAYS", "90")),
+            parquet_dir=Path(
+                e.get("COPILOT_PARQUET_DIR", str(REPO_ROOT / "data" / "parquet" / "default"))
+            ),
             model_main=e.get("COPILOT_MODEL_MAIN", "claude-sonnet-5-5"),
             model_fast=e.get("COPILOT_MODEL_FAST", "claude-haiku-5-5"),
         )

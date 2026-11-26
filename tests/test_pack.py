@@ -76,3 +76,31 @@ def test_content_hash_is_stable(pack) -> None:
 def test_missing_pack_fails_loudly(tmp_path) -> None:
     with pytest.raises(PackError):
         load_pack("nope", packs_dir=tmp_path)
+
+
+def test_checker_only_sources_are_never_read_by_governed_templates(pack) -> None:
+    from datetime import date
+
+    from copilot.packs.compiler import MetricRequest, compile_metric
+
+    checker_only = {
+        n for n, s in pack.pack.sources.items() if s.checker_only or s.layer == "control"
+    }
+    assert "meta_load_log" in checker_only
+    for m in pack.metrics.values():
+        req = MetricRequest(
+            m.id, date(2025, 7, 1), date(2025, 7, 31), date(2025, 10, 15), "month", ("period",)
+        )
+        for path in ("preferred", "independent"):
+            q = compile_metric(pack, req, path)
+            assert q.sources, (m.id, path)
+            assert not set(q.sources) & checker_only, (m.id, path, q.sources)
+
+
+def test_a_metric_reading_a_checker_only_source_is_rejected(pack) -> None:
+    from copilot.packs.loader import validate_pack
+
+    bad = pack.model_copy(deep=True)
+    bad.metrics["settled_volume_eur"].independent_sources.append("meta_load_log")
+    with pytest.raises(PackError, match="checker-only"):
+        validate_pack(bad)

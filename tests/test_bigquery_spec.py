@@ -36,6 +36,22 @@ def test_access_matrix_is_least_privilege() -> None:
     assert spec.AUTHORIZED_DATASETS == {"marts": ("raw", "group", "control")}
 
 
+def test_snapshot_role_is_narrow_and_dataset_scoped() -> None:
+    # ADR 014: no basic role on spb_snapshots; a custom role bound on that dataset only
+    assert spec.ACCESS["snapshots"] == {}
+    assert spec.DATASET_IAM_BINDINGS == {"snapshots": {"copilot": spec.SNAPSHOT_ROLE_ID}}
+    perms = set(spec.SNAPSHOT_ROLE_PERMISSIONS)
+    assert "bigquery.tables.create" in perms  # needed to create a snapshot (residual)
+    assert not perms & {
+        "bigquery.tables.updateData",
+        "bigquery.tables.delete",
+        "bigquery.tables.update",
+        "bigquery.datasets.update",
+        "bigquery.tables.setIamPolicy",
+        "bigquery.datasets.setIamPolicy",
+    }
+
+
 def test_transactions_table_physical_design() -> None:
     t = next(t for t in spec.TABLES if t.name == "src_transactions")
     assert t.partition_field == "txn_ts" and t.require_partition_filter

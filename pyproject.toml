@@ -9,13 +9,16 @@ requires-python = ">=3.11"
 dependencies = [
     "duckdb>=2.0.1",
     "jinja2>=3.1.6",
+    "mcp>=1.2",
     "numpy>=2.4.6",
     "pandas>=3.1.1",
     "pyarrow>=26.0.1",
     "pydantic>=2.14.4",
     "python-dotenv>=1.2.4",
     "pyyaml>=6.0.4",
+    "rich>=13",
     "sqlglot>=30.35.0",
+    "typer>=0.15",
 ]
 
 [project.scripts]
@@ -40,7 +43,6 @@ dev = [
     "pytest>=8.3",
     "pre-commit>=4.0",
     "poethepoet>=0.31",
-    "typer>=0.15",
 ]
 
 [tool.ruff]
@@ -128,8 +130,8 @@ cmd = "python scripts/_stub.py lookml-check M8"
 help = "Validate the LookML project and run the dashboard consistency test (not yet implemented, lands in M8)"
 
 [tool.poe.tasks.verify-iam]
-cmd = "python scripts/_stub.py verify-iam M3"
-help = "Prove least privilege: denied writes, denied reads, SQL policy, byte limit (not yet implemented, lands in M3)"
+cmd = "python scripts/verify_iam.py"
+help = "Prove least privilege on BigQuery: denied writes, denied reads, SQL policy, byte limit, snapshots and the ADR 014 residual (--only to select)"
 
 [tool.poe.tasks.corpus]
 cmd = "python scripts/fetch_corpus.py"

@@ -103,13 +103,41 @@ This creates the six datasets in the `EU` location and applies dataset-level acc
 | `spb_raw` | WRITER | READER | — |
 | `spb_group` | WRITER | READER | — |
 | `spb_control` | WRITER | READER | — |
-| `spb_snapshots` | — | WRITER | — |
+| `spb_snapshots` | — | custom role `spbSnapshotManager` (§6.1) | — |
 | `spb_ops` | — | WRITER | READER |
 | `spb_marts` | — | READER | READER |
 
 Marts are views over the source datasets. For `spb-looker` to query them without reading the sources directly, `make bq-setup` registers `spb_marts` as an **authorized dataset** on `spb_raw`, `spb_group` and `spb_control`. Verify this pattern against current BigQuery documentation when implementing.
 
 It also creates the tables with their physical design: `src_transactions` partitioned by day and clustered, with a mandatory partition filter.
+
+### 6.1 Snapshot role on `spb_snapshots` (ADR 014)
+
+Run snapshots need `bigquery.tables.deleteSnapshot` (to set an expiration and to drop a snapshot),
+which dataset WRITER lacks. Instead of OWNER, the copilot gets a narrow custom role on that one
+dataset. Each step changes IAM, so run it deliberately, one at a time, as the project owner.
+Without `--apply` the script only prints the step:
+
+```bash
+python scripts/iam_snapshot_role.py --step a [--apply]   # create the custom role (gcloud)
+python scripts/iam_snapshot_role.py --step b [--apply]   # GRANT it ON SCHEMA spb_snapshots (DCL)
+python scripts/verify_iam.py --only snapshots            # probe: create with expiry, query, drop
+python scripts/iam_snapshot_role.py --step d [--apply]   # remove the copilot's WRITER entry
+python scripts/iam_snapshot_role.py --rollback           # print the rollback commands
+```
+
+- Permissions: `bigquery.datasets.get`, `bigquery.tables.create`, `bigquery.tables.createSnapshot`,
+  `bigquery.tables.deleteSnapshot`, `bigquery.tables.get`, `bigquery.tables.getData`,
+  `bigquery.tables.list`. There is no `updateData`, no `tables.delete` and no IAM permission.
+- Step B uses the BigQuery `GRANT` statement because `bq add-iam-policy-binding` on a dataset
+  requires allowlisting. The grant appears as a dataset access entry with the custom role.
+- **Residual (by design):** `tables.create` lets the copilot create an empty ordinary table in
+  `spb_snapshots`. It cannot write data into it or delete it. It can also delete other runs'
+  snapshots, whose reruns then fail fast. See ADR 014.
+- IAM changes take a minute or two to take effect. Run `make verify-iam` a few minutes later.
+
+`make bq-setup` no longer lists WRITER for the copilot on `spb_snapshots`. It only ever adds
+entries, so it neither re-adds WRITER nor removes the custom-role entry.
 
 ## 7. Load data and deploy views
 
@@ -129,12 +157,45 @@ make verify-iam
 
 Expected results:
 
-- The copilot identity **cannot** write to `spb_raw` (permission denied from BigQuery).
-- The loader identity **cannot** read `spb_ops`.
-- A DDL or DML statement sent through the copilot is rejected by the SQL policy **before** reaching BigQuery.
-- A query exceeding `COPILOT_MAX_BYTES_BILLED` is rejected at dry-run.
+Each check prints PASS or FAIL with the evidence (the 403 BigQuery returned, or what the guarded
+layer did). The command exits non-zero if any check fails. `--only <check> ...` selects checks.
+
+| Check | Expected |
+|---|---|
+| `copilot-cannot-write-sources` | spb-copilot gets 403 appending to, or creating a table in, `spb_raw`, `spb_group`, `spb_control` |
+| `loader-cannot-read-ops` | spb-loader gets 403 listing or querying `spb_ops` |
+| `policy-rejects-ddl-dml` | DROP, INSERT, UPDATE, DELETE, MERGE, CREATE, EXPORT and a multi-statement script raise `PolicyViolation`; a spy proves zero calls reached BigQuery |
+| `dry-run-rejects-bytes` | a 12-month transaction-level query under a 10 MB limit raises `BytesLimitExceeded` after one dry run; no job is executed |
+| `snapshots` | spb-copilot creates a snapshot with an expiration, queries it and drops it |
+| `snapshots-residual` | spb-copilot *may* create an ordinary table in `spb_snapshots` (reported as allowed, ADR 014), but gets 403 appending to it, inserting into it and deleting it; the owner then removes the probe table |
+
+The write probes are harmless even if a permission were wrongly granted: appends add zero rows,
+and probe tables expire within an hour or are removed by the owner. Last live run (M3,
+2026-11-26): 24/24 PASS.
 
 These are good screenshots for the README: they show the controls actually work.
+
+## 8a. Governed MCP server (Level 1 self-service)
+
+`copilot mcp serve` starts the project's own MCP server on stdio. It has five tools
+(`list_metrics`, `get_metric_definition`, `search_catalog`, `describe_table`, `run_metric`) and
+no SQL tool. It runs as spb-copilot through the same guarded layer as the workflow, with
+`component=mcp` labels. Claude Desktop configuration (`claude_desktop_config.json`). It holds
+no values: the server reads backend, project and identities from the repository's `.env`:
+
+```json
+{
+  "mcpServers": {
+    "spb-governed-metrics": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/supervisory-request-copilot", "run", "copilot", "mcp", "serve"]
+    }
+  }
+}
+```
+
+With `COPILOT_BACKEND=duckdb` it reads the local Parquet snapshot and needs no cloud account.
+Every call is appended to `runs/mcp/calls.jsonl`.
 
 ## 9. Optional: Google's managed BigQuery MCP server
 

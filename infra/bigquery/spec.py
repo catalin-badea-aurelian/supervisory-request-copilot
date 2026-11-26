@@ -16,7 +16,8 @@ ACCESS: dict[str, dict[str, str]] = {
     "raw": {"loader": "WRITER", "copilot": "READER"},
     "group": {"loader": "WRITER", "copilot": "READER"},
     "control": {"loader": "WRITER", "copilot": "READER"},
-    "snapshots": {"copilot": "WRITER"},
+    # the copilot gets the custom snapshot role instead (DATASET_IAM_BINDINGS, ADR 014)
+    "snapshots": {},
     "ops": {"copilot": "WRITER", "looker": "READER"},
     "marts": {"copilot": "READER", "looker": "READER"},
 }
@@ -213,3 +214,27 @@ def render_plan(project: str, location: str, prefix: str, emails: dict[str, str]
         "spb_marts views are created later (M8).",
     ]
     return "\n".join(lines)
+
+
+# ---- Snapshot role (M3, ADR 014) ------------------------------------------------------------
+# A custom role bound on spb_snapshots only, so the copilot can create table snapshots with an
+# expiration and delete them, without OWNER on the dataset. bigquery.tables.create is needed to
+# create a snapshot; it also lets the identity create an *ordinary* empty table there (a
+# documented residual permission). It cannot update data in or delete such a table: the role
+# has no bigquery.tables.updateData and no bigquery.tables.delete.
+SNAPSHOT_ROLE_ID = "spbSnapshotManager"
+SNAPSHOT_ROLE_TITLE = "SPB snapshot manager"
+SNAPSHOT_ROLE_DESCRIPTION = (
+    "Create, read and delete table snapshots; bound on spb_snapshots only (ADR 014)"
+)
+SNAPSHOT_ROLE_PERMISSIONS: tuple[str, ...] = (
+    "bigquery.datasets.get",
+    "bigquery.tables.create",
+    "bigquery.tables.createSnapshot",
+    "bigquery.tables.deleteSnapshot",
+    "bigquery.tables.get",
+    "bigquery.tables.getData",
+    "bigquery.tables.list",
+)
+# dataset layer -> {identity: custom role id}, bound with dataset-level IAM
+DATASET_IAM_BINDINGS: dict[str, dict[str, str]] = {"snapshots": {"copilot": SNAPSHOT_ROLE_ID}}
