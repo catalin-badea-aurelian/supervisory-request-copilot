@@ -18,3 +18,7 @@ usd_per_mtok:
     output: 0.50
     cache_read: 0.01
     cache_write: 0.125
+
+# Fixed rate used only to report est_cost_eur in spb_ops (ops_runs). It is a reporting
+# convention for this demo, not a market quote; change it here if you report in EUR for real.
+reporting_eur_per_usd: 0.86

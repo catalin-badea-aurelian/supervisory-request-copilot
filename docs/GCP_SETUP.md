@@ -143,11 +143,20 @@ entries, so it neither re-adds WRITER nor removes the custom-role entry.
 
 ```bash
 make data TARGET=bigquery     # as spb-loader
+copilot dq scan --as-of 2025-10-15   # as spb-copilot; creates and fills spb_ops.ops_check_results
+copilot ops export                   # as spb-copilot; ops_runs, ops_gate_decisions, ops_metric_catalog
 make views                    # as you; generated SQL committed under dashboards/views/
-copilot dq scan --as-of 2025-10-15   # as spb-copilot; fills spb_ops for the dashboard
+pytest -m bigquery tests/marts/test_consistency_bigquery.py   # FR-D6 on the deployed views
 ```
 
-Check in the console: all datasets in `EU`; `src_transactions` shows partitioning and clustering; `spb_marts` contains the views.
+The order matters. The views over `spb_ops` need its tables, and the copilot creates them on first write with its WRITER role, so no new access is needed. The views read the sources through the authorised-dataset entries from `make bq-setup`.
+
+Check in the console:
+- all datasets are in `EU`
+- `src_transactions` shows partitioning and clustering
+- `spb_marts` contains the eight views
+
+The `spb-looker` side is still unchecked. Querying the marts as `spb-looker` needs Token Creator on that account for your user. You don't have it, so that read is first tested in M8b through the Looker connection.
 
 ## 8. Verify least privilege
 
