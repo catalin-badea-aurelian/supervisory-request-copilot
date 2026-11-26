@@ -1,0 +1,16 @@
+{
+  "key": "bd69dc77c797efc98cff8e45c2834486ce5e3a8d17cb066649c1316be726032c",
+  "model_requested": "claude-sonnet-5-5",
+  "prompt_ref": "intake@1.0.1",
+  "response": {
+    "model": "claude-sonnet-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"draft\":{\"as_of_date\":\"2025-10-15\",\"assumptions\":[\"Chargebacks are attributed to the month of the original transaction (transaction_month), as in the governed definition.\",\"The period is July to August 2025, i.e. 2025-07-01 to 2025-08-31.\",\"No filters apply because all merchant countries are in scope, including XX (unknown).\"],\"deadline\":null,\"dimensions\":[\"merchant_country\"],\"filters\":[],\"grain\":\"month\",\"metrics\":[\"chargeback_rate_value\"],\"output_format\":\"table\",\"period_end\":\"2025-08-31\",\"period_start\":\"2025-07-01\",\"title\":\"Chargeback rate (value) by merchant country, Jul-Aug 2025, monthly\"},\"precedent_refs\":[],\"questions\":[],\"reasoning\":\"The requester chose the value-based variant, as-of 2025-10-15, all countries, table only and transaction_month attribution. The request states the period (July-August 2025) and monthly grain. The earlier submissions cover 2024-Q4 and 2025-Q1 only, so they do not overlap and no precedent question is needed.\",\"undefined_measures\":[],\"undefined_metric\":false}",
+    "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 2724,
+      "input_tokens": 5445,
+      "output_tokens": 387
+    }
+  }
+}

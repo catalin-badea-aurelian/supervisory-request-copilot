@@ -1,0 +1,16 @@
+{
+  "key": "55550edc0b2640916497d540919cc9021d0ae0c083ea32c374d305f65b55c81e",
+  "model_requested": "claude-haiku-5-5",
+  "prompt_ref": "failure_explainer@1.0.0",
+  "response": {
+    "model": "claude-haiku-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"impact\": \"If delivered as is, one row of the chargeback rate figures for merchant country ES in the 2025-08-01 period could be off by up to 50% relative to the independent recomputation, so that slice's chargeback rate and the related chargeback amount and settled volume figures should not be relied on for risk decisions until resolved. The other 15 compared rows passed the check.\", \"likely_cause\": \"Most plausibly a mismatch between the preferred calculation path and the independent recomputation for a single ES slice, such as a stale or partial input, a currency or rounding difference in the chargeback amount or settled volume, or a join or filter that drops or duplicates a record for that period.\", \"summary\": \"The independent recomputation check V-DUAL-01 failed for merchant country ES in period 2025-08-01: 1 of 16 compared rows differs between the preferred and independent paths on chargeback_rate_value, chargeback_amount_eur or settled_volume_eur, with a maximum relative difference of 0.5 against a threshold of 0.001.\"}",
+    "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 769,
+      "output_tokens": 344
+    }
+  }
+}

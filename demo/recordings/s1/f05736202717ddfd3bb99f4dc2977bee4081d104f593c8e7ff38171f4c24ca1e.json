@@ -1,0 +1,16 @@
+{
+  "key": "f05736202717ddfd3bb99f4dc2977bee4081d104f593c8e7ff38171f4c24ca1e",
+  "model_requested": "claude-sonnet-5-5",
+  "prompt_ref": "intake@1.0.1",
+  "response": {
+    "model": "claude-sonnet-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"draft\":{\"as_of_date\":\"2025-10-15\",\"assumptions\":[\"Chargeback rate is reported as chargeback_rate_value, per the requester's answer.\",\"Q1-Q2 2025 means 2025-01-01 to 2025-06-30, two whole calendar quarters.\",\"Merchant category is mapped to the mcc_group dimension.\",\"Attribution is the month of the original transaction (transaction_month), as in the governed definition.\",\"The requester gave no deadline date beyond 'Friday', so the deadline is left empty.\",\"The requester asked for the governed definition, with differences to the earlier Q1 2025 submission explained.\"],\"deadline\":null,\"dimensions\":[\"merchant_country\",\"mcc_group\"],\"filters\":[],\"grain\":\"quarter\",\"metrics\":[\"chargeback_rate_value\"],\"output_format\":\"table\",\"period_end\":\"2025-06-30\",\"period_start\":\"2025-01-01\",\"title\":\"Chargeback rate (value) by country and MCC group, Q1-Q2 2025\"},\"precedent_refs\":[\"SUB:chargeback_rate_value:2025-Q1\"],\"questions\":[],\"reasoning\":\"All required topics are answered: variant, grain, as-of date, perimeter, output format, attribution and precedent. The request maps to chargeback_rate_value with merchant_country and mcc_group over Q1-Q2 2025. The deadline stays empty because 'Friday' was never resolved to a date, and the requester added no further constraints.\",\"undefined_measures\":[],\"undefined_metric\":false}",
+    "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 2724,
+      "input_tokens": 5702,
+      "output_tokens": 507
+    }
+  }
+}

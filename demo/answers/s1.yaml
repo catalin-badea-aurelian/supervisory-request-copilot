@@ -23,6 +23,7 @@ gates:
   G3:
     - decision: approve
       comment: Figures and warnings reviewed.
-      acknowledged_warnings: []
+      acknowledged_warnings:
+        - chargeback_rate_value:V-VAR-01
 expected:
   status: DELIVERED
