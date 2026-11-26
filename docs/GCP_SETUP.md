@@ -18,7 +18,7 @@ gcloud projects create PROJECT --name="SPB Oversight Demo"
 gcloud config set project PROJECT
 ```
 
-Project ids are global; add a suffix, for example `spb-oversight-demo-4821`.
+Project ids are global; add a suffix, for example `spb-oversight-<suffix>`.
 
 ## 2. Billing and budget
 
