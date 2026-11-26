@@ -161,14 +161,14 @@ stateDiagram-v2
     Review --> Evidence
     Evidence --> Gate3
     Gate3 --> Delivered: signed off
-    Gate3 --> Analyst: changes requested
+    Gate3 --> Intake: changes requested
     Gate3 --> Rejected: rejected
     Delivered --> [*]
     OnHold --> [*]
     Rejected --> [*]
 ```
 
-When the G2 decision is "deliver from independent path", the Analyst re-runs with `source_override=independent`. Validation runs again on the new primary result. The findings already decided at G2 (same check id and same slices) are carried as **accepted findings**: they keep status FAIL, get `accepted_ref` pointing to the G2 decision, appear as documented limitations in the evidence pack, and do not re-trigger G2. Any **new** FAIL goes to G2 again. This prevents escalation loops without hiding anything.
+When the G2 decision is "deliver from independent path", the Analyst re-runs with `source_override=independent`. The approved query plan is reused with the source path changed by code, so the rerun makes no new LLM call. Validation runs again on the new primary result. The findings already decided at G2 (same check id and same slices) are carried as **accepted findings**: they keep status FAIL, get `accepted_ref` pointing to the G2 decision, appear as documented limitations in the evidence pack, and do not re-trigger G2. Any **new** FAIL goes to G2 again. This prevents escalation loops without hiding anything.
 
 ### 4.2 Nodes
 
@@ -184,8 +184,20 @@ When the G2 decision is "deliver from independent path", the Analyst re-runs wit
 | `review` | LLM + RAG | spec, result summary, report | `ReviewReport` | Cannot alter numbers |
 | `evidence` | Code + LLM | everything above | `EvidencePack` | Placeholders filled by code |
 | `gate_3` | Human | `EvidencePack` | decision | WARN acknowledgement required |
+| `gate_error` | Human | escalation (agent error, token budget) | retry / hold / reject | G1 during intake, G2 afterwards; no retry after a budget overrun |
+
+Implemented in M4 (`src/copilot/workflow/graph.py`):
+
+- `intake`, `ask` (the question interrupt), `gate_1`, `analyst`, `validation`, `gate_2`, `gate_error`, `evidence` and `gate_3` are all real nodes.
+- Three nodes are **seams** for later milestones:
+  - `review` is a pass-through marked "not assessed" until M5.
+  - `evidence` writes a minimal `runs/<id>/delivery.md` (results, checks, accepted findings, a drafted issue note and labelled LLM explanations), which M5 replaces with the full evidence pack.
+  - `metric_proposal` ends the run `ON_HOLD` ("the metric-proposal flow arrives in M6"); it never improvises a definition.
+- Every transition is decided by code from the state. A model output is only an input to that decision. For example, `undefined_metric=true` routes to the proposal only if code finds a requested measure that is not in the glossary.
 
 ### 4.3 Workflow state (sketch)
+
+The implemented state holds JSON only (Pydantic models dumped with `mode="json"`), so the SQLite checkpoint never depends on pickled classes. Besides the fields below, it carries the pending questions, the approved query plan, the snapshot manifest, the source path, the accepted findings, the LLM explanations, the token budget counters and the next route.
 
 ```python
 class RunState(TypedDict):
@@ -206,8 +218,8 @@ class RunState(TypedDict):
 
 | Agent | Model tier | Allowed tools | Output contract | Must never |
 |---|---|---|---|---|
-| Intake | main | `glossary_search`, `get_metric_definition`, `precedent_search` | `RequestSpec` + `questions[]` | Touch data tables; assume as-of date, perimeter or definition variant |
-| Analyst | main | `get_metric_definition`, `describe_table`, `compile_metric_query`, `run_query` | `AnalysisResult` | See thresholds or the defect manifest; write data |
+| Intake | main | glossary (definition view), precedent index (submission metadata, no values) | `IntakeTurn` (draft + typed questions) → `RequestSpec` built by code | Touch data tables; assume as-of date, perimeter or definition variant |
+| Analyst | main | metric definitions (definition view); code compiles and runs the plan | `QueryPlan` → `AnalysisResult` built by code | See thresholds or the defect manifest; write data |
 | Metric proposer | main | `search_catalog`, `describe_table`, `sample_rows` (≤ 20 rows) | `MetricProposal` | Write to the domain pack (only the GD gate does) |
 | Reviewer | main | `retrieve_bcbs239` | `ReviewReport` | Change figures or check statuses; cite unretrieved text |
 | Narrative writer | fast | none | Markdown with placeholders | Emit literal numbers (rejected by a regex guard) |
@@ -215,8 +227,11 @@ class RunState(TypedDict):
 
 Common rules:
 
-- Temperature 0 for extraction and classification; small positive temperature only for narrative drafting.
-- Every output is parsed into its Pydantic model. On failure: one retry with the validation error, then escalate to the next human gate.
+- **No sampling parameters.** Current models reject a non-default `temperature`, `top_p` or `top_k` with HTTP 400. Determinism comes from structured outputs, a low `output_config.effort` per prompt, routing decided by code, and record/replay (ADR 015).
+- **Single structured calls.** In M4 each agent makes one structured call, and code assembles the context it needs. The "allowed tools" above are therefore what code puts in that context. There is no tool loop: the glossary is small enough to send whole, and policy is enforced in code either way.
+- **Code checks every output.** Intake: metrics exist and are approved; dimensions and filter values are allowed; the period aligns to the grain and lies inside the data range; the as-of date and perimeter appear in the request text or in an answer on that topic; overlaps with earlier submissions are raised as a precedent question. Analyst: the plan must match the confirmed spec exactly, and `non_template=true` is rejected and escalated in M4.
+- **Typed questions.** Questions carry a `topic` (`metric_variant`, `attribution`, `perimeter`, `as_of`, `grain`, `period`, `output_format`, `precedent`, `other`). Scripted answers and code checks match the topic, never the wording.
+- Every output is parsed into its Pydantic model. On failure: one retry with the validation error, then escalate to the next human gate. A `refusal` or `max_tokens` stop reason escalates without a retry.
 - Content from data, documents and tool results is wrapped as **data** in prompts; instructions found inside it are ignored. Policy is enforced by tools, so a successful injection still cannot run DDL, skip a check, or bypass a gate.
 
 ## 6. Contracts (Pydantic sketches)
@@ -613,12 +628,14 @@ Principles 1–11 apply to the institution. For a single deliverable the reviewe
 - State is persisted by a SQLite checkpointer (`runs/checkpoints.sqlite`), so a run can wait at G3 overnight and resume with `copilot resume <id>`.
 - `make demo` supplies scripted decisions from `demo/answers/*.yaml`; the audit log marks them `actor=scripted-demo`.
 - G3 cannot be approved while unacknowledged WARNs exist; the CLI requires each WARN id to be acknowledged explicitly.
+- **Re-execution on resume.** A gate node is re-executed when it resumes. It therefore builds its payload deterministically and writes to the audit log only after the decision arrives. An invalid decision is logged and the gate asks again: an unknown option, or approval with a WARN not acknowledged.
+- **Accepted findings.** An accepted finding is keyed by metric, check id and canonical affected slices (`src/copilot/workflow/findings.py`). The workflow and `copilot rerun` use the same function, so the validation report hash is reproducible.
 
 | Gate | Trigger | Options | Effect |
 |---|---|---|---|
 | G1 | Spec complete | approve / request changes | Proceed to Analyst, or back to Intake |
 | G2 | Any FAIL not yet decided | independent path with limitation / hold and raise issue / reject | Re-run, `ON_HOLD` with issue note, or `REJECTED` |
-| G3 | Evidence pack ready | approve / request changes / reject | `DELIVERED`, back to Analyst, or `REJECTED` |
+| G3 | Evidence pack ready | approve / request changes / reject | `DELIVERED`, back to Intake (spec revised with the approver's comment), or `REJECTED` |
 | GD | Undefined metric | approve / edit / reject | Pack version bump and resume, or `REJECTED` |
 
 ## 12. Audit, lineage, rerun and evidence
@@ -645,7 +662,8 @@ Principles 1–11 apply to the institution. For a single deliverable the reviewe
 ```
 
 - `event_sha256 = sha256(prev_event_sha256 + canonical_json(event_without_hash))`; the first event uses a fixed genesis value.
-- Event types: `request_received`, `question_asked`, `answer_received`, `spec_drafted`, `gate_decision`, `llm_call`, `tool_call`, `query_executed`, `check_result`, `retrieval`, `citation_validated`, `evidence_built`, `pack_updated`, `status_changed`.
+- Event types: `request_received`, `question_asked`, `answer_received`, `spec_drafted`, `gate_decision`, `llm_call`, `tool_call`, `query_executed`, `snapshot_taken`, `check_result`, `validation_completed`, `escalation`, `retrieval`, `citation_validated`, `evidence_built`, `pack_updated`, `status_changed`.
+- Payloads are stored in `runs/<id>/payloads/NNNN-<event_type>.json` and referenced by SHA-256. `audit verify` checks both the event chain and every payload.
 - `copilot audit verify <id>` recomputes the chain and reports the first broken link, if any.
 
 ### 12.2 Run manifest
@@ -661,6 +679,10 @@ Principles 1–11 apply to the institution. For a single deliverable the reviewe
 5. Print a diff table: expected vs actual hashes per query and per check.
 
 LLM steps are **not** re-executed: their recorded outputs are part of the record. Rerun proves the numbers, not the prose.
+
+- **Pack version.** The pack is checked by its content hash. If it differs, rerun fails fast and tells you to check out the commit of that pack version.
+- **DuckDB snapshots.** These are verified file by file before anything runs.
+- **Validation.** Validation runs on the re-executed results, with the accepted findings from the manifest re-applied.
 
 ### 12.4 Evidence pack sections
 
@@ -737,7 +759,8 @@ The audit log in the run folder remains the record of truth; `spb_ops` is a repo
 ## 14. Model and prompt governance
 
 - Model ids come from configuration (`COPILOT_MODEL_MAIN`, `COPILOT_MODEL_FAST`); agents never hard-code them.
-- Prompts are versioned files with front-matter (`id`, `version`, `owner`, `change`). Prompt id and version are logged on every call.
+- Prompts are versioned files with front-matter (`id`, `version`, `tier`, `effort`, `max_tokens`). Prompt id and version are logged on every call.
+- LLM calls replay recorded responses by default. Live calls happen only with an explicit `--live` or `--record`, never in tests or CI. A per-run token budget is a hard stop. See ADR 015.
 - Any change to a prompt, model id or domain pack must pass `make eval` before merge (manual gate in the PR template).
 - The eval report records model ids and prompt versions, so results are attributable.
 - In a real institution this inventory (agents, prompts, models, evals) would be registered as a model and validated independently; see §22.
@@ -862,6 +885,7 @@ Full ADRs live in `docs/adr/`. Summary:
 | 012 | Keyless authentication via service-account impersonation | No long-lived secrets to leak; mirrors enterprise practice | Developer needs Token Creator on each service account |
 | 013 | Looker as a time-boxed trial; Git is the permanent record | Realistic BI and semantic layer at no cost | Live demo only within 30 days; rebuild steps must be tested; instance deleted before conversion to paid |
 | 014 | Narrow custom role `spbSnapshotManager` on `spb_snapshots` instead of WRITER/OWNER | Snapshots with expiration need `deleteSnapshot`; OWNER would allow ACL changes and data writes | Residual: the copilot can create an empty ordinary table in that dataset (not write to it or delete it) and can delete other runs' snapshots (their reruns then fail fast) |
+| 015 | One LLM gateway: model by tier from config, structured outputs, effort instead of temperature, record/replay (replay by default), per-run token budget, no server-side fallbacks | Cost control, repeatable demos without an API key, no API calls in tests, an audit trail that names the configured model | Changing a prompt, model or glossary invalidates recordings until an explicit `--record` run |
 
 ## 20. Controls → BCBS 239 mapping
 
