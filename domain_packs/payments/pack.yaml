@@ -1,5 +1,5 @@
 id: payments
-version: 1.1.0
+version: 1.2.0
 name: Payments
 entity: Synthetic Payments Bank (SPB)
 data_range: {start: 2024-10-01, end: 2025-09-30}
@@ -19,7 +19,7 @@ sources:
   ledger_control_totals: {layer: control, description: "Ledger control totals"}
   prior_submissions: {layer: control, description: "Figures submitted previously"}
   ewi_thresholds: {layer: control, description: "Early-warning thresholds"}
-  meta_load_log: {layer: raw, description: "Load log per table and month"}
+  meta_load_log: {layer: raw, checker_only: true, description: "Load log per table and month"}
 dimensions:
   merchant_country:
     description: Country of the merchant (XX = unknown)

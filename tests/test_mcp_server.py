@@ -82,7 +82,13 @@ def test_search_catalog_finds_metrics_and_tables(tools) -> None:
 def test_describe_table_is_limited_to_metric_sources(tools) -> None:
     out = tools.describe_table("src_merchants")
     assert {"merchant_id", "merchant_country"} <= {c["name"] for c in out["columns"]}
-    for table in ("ledger_control_totals", "ewi_thresholds", "prior_submissions", "nope"):
+    for table in (
+        "ledger_control_totals",
+        "ewi_thresholds",
+        "prior_submissions",
+        "meta_load_log",
+        "nope",
+    ):
         with pytest.raises(ToolInputError):
             tools.describe_table(table)
 
@@ -181,3 +187,26 @@ def test_every_call_is_logged(tools) -> None:
     lines = [json.loads(x) for x in tools._log.read_text(encoding="utf-8").splitlines()]
     assert [e["tool"] for e in lines] == ["list_metrics", "run_metric"]
     assert lines[1]["result_sha256"] and lines[1]["pack"].startswith("payments@")
+
+
+def test_search_catalog_does_not_list_checker_only_tables(tools) -> None:
+    assert not [h for h in tools.search_catalog("load") if h["kind"] == "table"]
+    assert not [h for h in tools.search_catalog("ledger") if h["kind"] == "table"]
+
+
+def test_run_metric_states_the_as_of_it_applied_and_what_the_snapshot_means(tools) -> None:
+    out = tools.run_metric("settled_volume_eur", "2025-07-01", "2025-07-31", "2025-10-15")
+    assert out["as_of_applied"] == "2025-10-15"
+    assert "_loaded_at" in out["as_of_rule"]
+    assert out["snapshot_id"].startswith("duckdb:")
+    assert "not the business as-of date" in out["snapshot_meaning"]
+    d = tools.get_metric_definition("chargeback_rate_value")
+    assert "_loaded_at" in d["as_of"]
+
+
+def test_live_snapshot_meaning_is_explicit() -> None:
+    from copilot.mcp_server.tools import snapshot_meaning
+
+    text = snapshot_meaning("live@2026-11-26T10:13:40+00:00")
+    assert "2026-11-26T10:13:40+00:00" in text
+    assert "not the business as-of date" in text

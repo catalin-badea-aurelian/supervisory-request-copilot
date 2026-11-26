@@ -8,7 +8,8 @@ Templates compile straight against the snapshot names (through `resolver`), so n
 rewritten after compilation. The allowlist holds exactly the resolved names of the tables
 the profile may read:
 
-- `metric`: raw and group sources (templates, MCP, Analyst): no control tables
+- `metric`: raw and group sources (templates, MCP, Analyst): no control tables and no
+  source the pack marks `checker_only` (the load log)
 - `validation`: every pack source, including the control tables (ledger, load log,
   prior submissions, thresholds) the checker needs
 """
@@ -51,7 +52,11 @@ class DataSession:
 def profile_tables(pack: DomainPack, profile: Profile) -> list[str]:
     if profile == "validation":
         return sorted(pack.pack.sources)
-    return sorted(n for n, s in pack.pack.sources.items() if s.layer in ("raw", "group"))
+    return sorted(
+        n
+        for n, s in pack.pack.sources.items()
+        if s.layer in ("raw", "group") and not s.checker_only
+    )
 
 
 def _policy(dialect: str, resolver: Callable[[str], str], tables: list[str]) -> SqlPolicy:

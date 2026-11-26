@@ -25,6 +25,32 @@ from copilot.packs.compiler import CompileError, MetricRequest, compile_metric
 from copilot.packs.models import DomainPack
 
 MAX_ROWS = 1000
+AS_OF_RULE = (
+    "Business as-of date, applied in the governed SQL: transaction, chargeback, fraud-loss and "
+    "group-product rows loaded after as_of (DATE(_loaded_at) > as_of) are excluded. Merchant "
+    "reference data (country, MCC group) is joined as stored."
+)
+
+
+def snapshot_meaning(snapshot_id: str) -> str:
+    """Explain snapshot_id: the physical state of the tables read, not the business as-of."""
+    if snapshot_id.startswith("live@"):
+        return (
+            "System time of the read: the current tables were queried at "
+            f"{snapshot_id[5:]} (no per-call snapshot). It is not the business as-of date; "
+            "as_of_applied is."
+        )
+    if snapshot_id.startswith("duckdb:"):
+        return (
+            "Local mode: the fixed Parquet files identified by this hash were read. It is not "
+            "the business as-of date; as_of_applied is."
+        )
+    return (
+        "Run snapshot: frozen copies of the tables taken at the start of the run. It is not "
+        "the business as-of date; as_of_applied is."
+    )
+
+
 SessionFactory = Callable[[str], DataSession]  # request_id -> session (profile "metric")
 
 
@@ -86,6 +112,7 @@ class GovernedTools:
             "preferred_source": m.preferred_source,
             "independent_sources": m.independent_sources,
             "limitations": m.limitations,
+            "as_of": AS_OF_RULE,
             "changelog": [c.model_dump(mode="json") for c in m.changelog],
             "pack": f"{self.pack.pack.id}@{self.pack.pack.version}",
         }
@@ -180,7 +207,10 @@ class GovernedTools:
             "template_id": q.template_id,
             "sql_sha256": rec.sql_sha256,
             "result_sha256": rec.result_sha256,
+            "as_of_applied": req.as_of.isoformat(),
+            "as_of_rule": AS_OF_RULE,
             "snapshot_id": rec.snapshot_id,
+            "snapshot_meaning": snapshot_meaning(rec.snapshot_id),
             "bytes_processed": rec.bytes_processed,
             "rows": rec.rows,
             "truncated": rec.rows > MAX_ROWS,

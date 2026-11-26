@@ -350,8 +350,15 @@ compilation. Validation through a guarded session reproduces the M2 report hash 
   the sorted `table: file SHA-256` list. A rerun re-hashes the files and fails fast if any of
   them changed. DuckDB has no statement timeout, so a timer interrupts long queries.
 
-**Profiles.** `metric` allows only the raw and group sources (templates, Analyst, MCP);
-`validation` also allows the control tables (ledger, load log, prior submissions, thresholds).
+**Profiles.** `metric` allows only the raw and group sources (templates, Analyst, MCP), minus
+any source the pack marks `checker_only` (the load log); `validation` also allows the control
+tables and the load log (ledger, load log, prior submissions, thresholds). The pack loader
+rejects a metric that reads a checker-only or control source.
+
+**As-of in results.** `run_metric` echoes `as_of_applied` and the rule (fact rows loaded after
+the as-of date are excluded; merchant reference data is joined as stored), and explains
+`snapshot_id` (`snapshot_meaning`): it identifies the physical table state read, never the
+business as-of date.
 
 ### 7.2 SQL policy (enforced by a parser)
 

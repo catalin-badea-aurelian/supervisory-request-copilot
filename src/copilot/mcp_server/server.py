@@ -96,7 +96,12 @@ def build_server(tools: GovernedTools) -> MCPServer:
     ) -> dict[str, Any]:
         """Run a governed metric. Dates are ISO (YYYY-MM-DD); the period must align to the
         grain (month or quarter). dims: any of the metric's allowed_dimensions, e.g.
-        ["period", "merchant_country"]. filters: e.g. {"merchant_country": ["DE", "FR"]}."""
+        ["period", "merchant_country"]. filters: e.g. {"merchant_country": ["DE", "FR"]}.
+
+        as_of is the business as-of date and is always applied in the SQL: rows loaded after
+        it are excluded (the result echoes it as as_of_applied). snapshot_id describes which
+        physical table state was read (live@<time> = current tables at that system time); it
+        is not the as-of date."""
         return _guard(
             tools.run_metric, metric_id, period_start, period_end, as_of, grain, dims, filters
         )
