@@ -39,6 +39,8 @@ EVENT_TYPES = frozenset(
         "status_changed",
         "escalation",
         "snapshot_taken",
+        "scan_started",
+        "ops_exported",
     }
 )
 

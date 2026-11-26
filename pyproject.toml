@@ -121,12 +121,12 @@ args = [
 ]
 
 [tool.poe.tasks.views]
-cmd = "python scripts/_stub.py views M8"
-help = "Generate mart views from the domain pack into spb_marts (not yet implemented, lands in M8)"
+cmd = "python -m copilot.cli views"
+help = "Generate mart views from the domain pack (dashboards/views/) and deploy them to spb_marts (as the owner)"
 
 [tool.poe.tasks.lookml]
-cmd = "python scripts/_stub.py lookml M8"
-help = "Generate LookML from the domain pack into looker/ (not yet implemented, lands in M8)"
+cmd = "python -m copilot.cli lookml"
+help = "Generate LookML (views, explores, model, dashboards) from the domain pack into looker/"
 
 [tool.poe.tasks.lookml-publish]
 cmd = "python scripts/_stub.py lookml-publish M8"
