@@ -23,13 +23,9 @@ from copilot.contracts.validation import canonical_value
 from copilot.data.session import DataSession, profile_tables
 from copilot.packs.compiler import CompileError, MetricRequest, compile_metric
 from copilot.packs.models import DomainPack
+from copilot.packs.views import AS_OF_RULE, metric_definition_view
 
 MAX_ROWS = 1000
-AS_OF_RULE = (
-    "Business as-of date, applied in the governed SQL: transaction, chargeback, fraud-loss and "
-    "group-product rows loaded after as_of (DATE(_loaded_at) > as_of) are excluded. Merchant "
-    "reference data (country, MCC group) is joined as stored."
-)
 
 
 def snapshot_meaning(snapshot_id: str) -> str:
@@ -98,21 +94,7 @@ class GovernedTools:
         if m is None:
             raise ToolInputError(f"unknown metric {metric_id!r}")
         out = {
-            "metric_id": m.id,
-            "name": m.name,
-            "version": m.version,
-            "status": m.status,
-            "owner": m.owner,
-            "definition": " ".join(m.definition.split()),
-            "unit": m.unit,
-            "numerator": m.numerator,
-            "denominator": m.denominator,
-            "attribution": m.attribution,
-            "allowed_dimensions": m.allowed_dimensions,
-            "preferred_source": m.preferred_source,
-            "independent_sources": m.independent_sources,
-            "limitations": m.limitations,
-            "as_of": AS_OF_RULE,
+            **metric_definition_view(self.pack, metric_id),
             "changelog": [c.model_dump(mode="json") for c in m.changelog],
             "pack": f"{self.pack.pack.id}@{self.pack.pack.version}",
         }
