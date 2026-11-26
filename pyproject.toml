@@ -48,6 +48,10 @@ dev = [
     "pre-commit>=4.0",
     "poethepoet>=0.31",
 ]
+docs = [
+    "playwright>=1.49",
+    "pillow>=11",
+]
 
 [tool.ruff]
 line-length = 100
@@ -140,6 +144,10 @@ help = "Push looker/ to the Looker project repo (requires a Looker instance; opt
 [tool.poe.tasks.lookml-check]
 cmd = "python scripts/looker_required.py lookml-check"
 help = "Validate the LookML project and run the consistency test through Looker (requires a Looker instance; optional, ADR 016)"
+
+[tool.poe.tasks.docs-media]
+cmd = "python scripts/docs_media.py"
+help = "Screenshots (docs/img/*.png) and demo.gif from the approved docs/dashboard/ (needs: uv sync --group docs; playwright install chromium)"
 
 [tool.poe.tasks.dashboard]
 cmd = "python -m copilot.cli dashboard build"

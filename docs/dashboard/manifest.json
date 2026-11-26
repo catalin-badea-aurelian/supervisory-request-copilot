@@ -1,0 +1,14 @@
+{
+  "as_of": "2025-10-15",
+  "audit_head_sha256": "a6b0341df360d41c82606c0c883d10d3293f32f0657c7e4704a34be38cd616bb",
+  "backend": "bigquery",
+  "caption_source": "template",
+  "dashboard_id": "dash-scan-2025-10-15-20261126-143248-6849",
+  "data_sha256": "1a23ed61121a7d8d0ac6f908378598cc92eb4edd687621c66f41a4452ce9884d",
+  "gd_reason": "Reviewed: R1 IT Jun-25 red as expected; Aug/Sep DQ FAILs match known data events; 25/25 tiles reconciled",
+  "html_sha256": "30226d4f18799d5fa020146816723a446e3cc80ef1e1945b712276c1230a5af4",
+  "pack_version": "1.3.0",
+  "scan_run_id": "scan-2025-10-15-20261126-143248-6849",
+  "spec_sha256": "df1f41aefd58793ca6acd13c3b2411335cd7e87f4ffb07398671ed9b24b308e0",
+  "status": "APPROVED"
+}
