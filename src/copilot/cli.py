@@ -7,6 +7,8 @@ only ways to call the API (ADR 015).
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 import typer
@@ -30,6 +32,18 @@ audit_app = typer.Typer(help="Audit log commands.")
 app.add_typer(audit_app, name="audit")
 llm_app = typer.Typer(help="LLM gateway commands.")
 app.add_typer(llm_app, name="llm")
+
+
+@contextmanager
+def _llm_errors() -> Iterator[None]:
+    """A missing recording or a refused live call ends the command with a clear message."""
+    from copilot.llm.transport import TransportError
+
+    try:
+        yield
+    except TransportError as e:
+        typer.secho(f"LLM transport: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(2) from None
 
 
 def _mode(live: bool, record: bool) -> str | None:
@@ -74,9 +88,10 @@ def ask(
     )
     rt = cons.build_runtime(settings, mode, rec, backend)
     answerer = cons.logging_answerer(script) if script else cons.interactive
-    state = drive(
-        rt, rid, answerer, raw_request=text, requester=script.requester if script else requester
-    )
+    with _llm_errors():
+        state = drive(
+            rt, rid, answerer, raw_request=text, requester=script.requester if script else requester
+        )
     cons.summary(state, mode)
 
 
@@ -98,7 +113,9 @@ def resume(
     mode = _mode(live, record) or "replay"
     rt = cons.build_runtime(settings, mode, Path(cfg["recordings"]), cfg.get("backend"))
     answerer = cons.logging_answerer(Script.load(answers)) if answers else cons.interactive
-    cons.summary(drive(rt, request_id, answerer), mode)
+    with _llm_errors():
+        state = drive(rt, request_id, answerer)
+    cons.summary(state, mode)
 
 
 @app.command()
@@ -141,7 +158,9 @@ def demo(
     from copilot.config import Settings
     from copilot.workflow.demo import run_demo
 
-    if not run_demo(Settings.from_env(), scenario, "record" if record else "replay", backend):
+    with _llm_errors():
+        ok = run_demo(Settings.from_env(), scenario, "record" if record else "replay", backend)
+    if not ok:
         raise typer.Exit(1)
 
 
