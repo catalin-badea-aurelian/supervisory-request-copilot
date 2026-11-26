@@ -1,0 +1,16 @@
+{
+  "key": "d603df833fb5fd7f39d6b8538a2b9ae60f339831b426b8d4a0e44988e81caea7",
+  "model_requested": "claude-haiku-5-5",
+  "prompt_ref": "failure_explainer@1.1.0",
+  "response": {
+    "model": "claude-haiku-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"impact\": \"The ES slice for 2025-08-01 is overstated in the delivered figures: settled volume is 1,793,696.26 against an expected 896,848.13 (2.00×, 100.0% of the total gap), and chargeback amount is 6,334.78 against an expected 3,167.39 (2.00×, 100.0% of the total gap). The total for 2025-08-01 is also overstated, with settled volume at 6,827,787.46 against 5,930,939.33 (1.15×) and chargeback amount at 20,757.64 against 17,590.25 (1.18×). Delivering these figures as they are would double-count the ES amounts in the period totals, so they would not reconcile to the ledger.\", \"likely_cause\": \"likely cause, supported by V-DUAL-01, V-PK-01: duplicated rows in grp_merchant_monthly for the ES slice in 2025-08-01, since grp_merchant_monthly shows 10 duplicate keys while src_transactions, src_chargebacks and src_merchants show 0.\", \"summary\": \"Reconciliation to ledger failed for merchant country ES in period 2025-08-01, where the ES line is 2.00× the ledger for both settled volume (1,793,696.26 observed against 896,848.13 expected) and chargeback amount (6,334.78 against 3,167.39). The total line for the same period also breaches the 0.5% threshold, with settled volume at 6,827,787.46 against 5,930,939.33 (1.15×) and chargeback amount at 20,757.64 against 17,590.25 (1.18×).\"}",
+    "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 912,
+      "input_tokens": 1596,
+      "output_tokens": 530
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "key": "762978243da1fc4041d64de5cd697adf27246a49512ff9bcf80e2d172960cb2e",
+  "model_requested": "claude-haiku-5-5",
+  "prompt_ref": "failure_explainer@1.1.0",
+  "response": {
+    "model": "claude-haiku-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"impact\": \"If delivered as is, the ES slice for 2025-08-01 would overstate settled volume and chargeback amounts by 100.0% against the ledger, with observed 1,793,696.26 against expected 896,848.13 for settled_volume_eur and observed 6,334.78 against expected 3,167.39 for chargeback_amount_eur. The chargeback rate for this slice also disagrees with the independent recomputation by 50.0%, well above the 0.1% threshold, so the reported rate cannot be relied on.\", \"likely_cause\": \"likely cause, supported by V-PK-01, V-REC-01: duplicated rows in the grp_merchant_monthly source for the ES 2025-08-01 slice, since its duplicate key count is 10 while the source transaction, chargeback and merchant tables show 0, which points to duplicated rows in that aggregated source rather than duplicated transactions.\", \"summary\": \"The independent recomputation check V-DUAL-01 failed for the ES slice for period 2025-08-01 on chargeback_rate_value, with 1 mismatched row out of 16 compared and a maximum relative difference of 50.0% against a 0.1% threshold. The related reconciliation check V-REC-01 also failed on the same slice, with settled_volume_eur and chargeback_amount_eur each at 2.00× the expected value.\"}",
+    "usage": {
+      "cache_creation_input_tokens": 912,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 914,
+      "output_tokens": 453
+    }
+  }
+}
