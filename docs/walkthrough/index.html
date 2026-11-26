@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supervisory Request Copilot — interactive walkthrough</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0d111c; color: #e2e8f0; font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+         min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  .stage { position: relative; width: min(1280px, 100%); aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden;
+           box-shadow: 0 20px 60px rgba(0,0,0,.5); background: #0d111c; }
+  video { width: 100%; height: 100%; display: block; }
+  .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 52px; height: 52px; border-radius: 50%;
+         border: 1px solid #334155; background: rgba(19,25,40,.85); color: #e2e8f0; font-size: 24px; cursor: pointer;
+         display: grid; place-items: center; transition: background .15s, opacity .15s; }
+  .nav:hover { background: #1e3a5f; }
+  .nav:disabled { opacity: .25; cursor: default; }
+  #prev { left: 14px; } #next { right: 14px; }
+  .bar { width: min(1280px, 100%); display: flex; align-items: center; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+  .dots { display: flex; gap: 6px; flex: 1; flex-wrap: wrap; }
+  .dot { height: 8px; flex: 1; min-width: 18px; border-radius: 4px; background: #1e293b; border: 0; cursor: pointer; padding: 0; position: relative; overflow: hidden; }
+  .dot.done { background: #38bdf8; }
+  .dot.cur { background: #1e3a5f; }
+  .dot.cur::after { content: ""; position: absolute; inset: 0; width: var(--p, 0%); background: #7dd3fc; }
+  .info { font-size: 14px; color: #94a3b8; min-width: 190px; }
+  .info b { color: #f1f5f9; }
+  .mode { border: 1px solid #334155; background: #131928; color: #cbd5e1; border-radius: 999px; padding: 7px 14px; font-size: 13px; cursor: pointer; }
+  .mode.on { border-color: #38bdf8; color: #7dd3fc; }
+  .hint { width: min(1280px, 100%); font-size: 12px; color: #64748b; margin-top: 10px; }
+  a { color: #7dd3fc; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <video id="v" muted playsinline preload="auto"><source src="flow.webm" type="video/webm"><source src="flow.mp4" type="video/mp4"></video>
+  <button class="nav" id="prev" aria-label="Previous step">&#8592;</button>
+  <button class="nav" id="next" aria-label="Next step">&#8594;</button>
+</div>
+<div class="bar">
+  <div class="info" id="info"></div>
+  <div class="dots" id="dots"></div>
+  <button class="mode on" id="mode">Auto-play: on</button>
+</div>
+<div class="hint">Auto-play pauses 5 seconds on each step. Click an arrow, a step bar, or press &#8592; / &#8594; to take control; the timer then stops.
+  Synthetic data for a fictional institution. Source: <a href="https://github.com/catalin-badea-aurelian/supervisory-request-copilot">GitHub repository</a>.</div>
+<script>
+const SEGS = [{"label": "Request", "start": 0.0, "hold": 4.6}, {"label": "Intake", "start": 4.6333, "hold": 6.9667}, {"label": "G1", "start": 7.0, "hold": 9.3667}, {"label": "Analyst", "start": 9.4, "hold": 11.7333}, {"label": "Governed SQL", "start": 11.7667, "hold": 14.1333}, {"label": "BigQuery", "start": 14.1667, "hold": 16.5333}, {"label": "Checker", "start": 16.5667, "hold": 18.9333}, {"label": "G2", "start": 18.9667, "hold": 21.3}, {"label": "Evidence", "start": 21.3333, "hold": 23.7}, {"label": "G3", "start": 23.7333, "hold": 26.0667}, {"label": "Dashboard", "start": 26.1, "hold": 28.4333}, {"label": "GD", "start": 28.4667, "hold": 30.8333}, {"label": "GitHub Pages", "start": 30.8667, "hold": 33.2}, {"label": "MCP self-service", "start": 33.2333, "hold": 35.8333}, {"label": "Summary", "start": 35.8667, "hold": 36.8667}];
+const PAUSE_MS = 5000, FPS = 30;
+const v = document.getElementById('v'), dots = document.getElementById('dots'), info = document.getElementById('info');
+const prevB = document.getElementById('prev'), nextB = document.getElementById('next'), modeB = document.getElementById('mode');
+let idx = 0, auto = true, timer = null, timerStart = 0, playing = false, raf = null;
+
+SEGS.forEach((s, i) => { const b = document.createElement('button'); b.className = 'dot'; b.title = (i + 1) + '. ' + s.label;
+  b.onclick = () => { manual(); show(i, i === idx + 1); }; dots.appendChild(b); });
+
+function render() {
+  [...dots.children].forEach((d, i) => { d.className = 'dot' + (i < idx ? ' done' : i === idx ? ' cur' : ''); });
+  info.innerHTML = 'Step <b>' + (idx + 1) + '/' + SEGS.length + '</b> · ' + SEGS[idx].label;
+  prevB.disabled = idx === 0; nextB.disabled = idx === SEGS.length - 1;
+  modeB.textContent = 'Auto-play: ' + (auto ? 'on' : 'off'); modeB.classList.toggle('on', auto);
+}
+function clearTimer() { if (timer) clearTimeout(timer); timer = null; dots.children[idx] && dots.children[idx].style.setProperty('--p', '0%'); }
+function tick() {
+  const s = SEGS[idx];
+  if (playing && v.currentTime >= s.hold - 0.5 / FPS) { v.pause(); v.currentTime = s.hold; playing = false; arm(); }
+  if (timer) { const p = Math.min(100, (performance.now() - timerStart) / PAUSE_MS * 100); dots.children[idx].style.setProperty('--p', p + '%'); }
+  raf = requestAnimationFrame(tick);
+}
+function arm() { clearTimer(); if (auto && idx < SEGS.length - 1) { timerStart = performance.now(); timer = setTimeout(() => show(idx + 1, true), PAUSE_MS); } }
+function show(i, animate) {
+  clearTimer(); idx = Math.max(0, Math.min(SEGS.length - 1, i)); render();
+  const s = SEGS[idx];
+  if (animate) { v.currentTime = s.start; playing = true; v.play().catch(() => { playing = false; v.currentTime = s.hold; arm(); }); }
+  else { playing = false; v.pause(); v.currentTime = s.hold; arm(); }
+}
+function manual() { auto = false; clearTimer(); render(); }
+prevB.onclick = () => { manual(); show(idx - 1, false); };
+nextB.onclick = () => { manual(); show(idx + 1, true); };
+modeB.onclick = () => { auto = !auto; render(); if (auto && !playing) arm(); else clearTimer(); };
+document.addEventListener('keydown', e => { if (e.key === 'ArrowRight' && idx < SEGS.length - 1) nextB.click(); if (e.key === 'ArrowLeft' && idx > 0) prevB.click(); });
+v.addEventListener('loadeddata', () => { render(); show(0, true); raf = requestAnimationFrame(tick); }, { once: true });
+</script>
+</body>
+</html>
