@@ -734,6 +734,15 @@ After every run, and on `copilot ops export`, the copilot batch-loads operationa
 
 The audit log in the run folder remains the record of truth; `spb_ops` is a reporting copy for the dashboard.
 
+As built in M8a (`src/copilot/ops/`):
+
+- **Table creation.** The copilot creates the tables on first write, using its WRITER role on `spb_ops`, so no new access is needed.
+- **How rows are written.** Batch load jobs run as `spb-copilot` with labels. In local mode the rows go to `runs/ops/*.jsonl` instead.
+- **`copilot dq scan`.** Appends to `ops_check_results` as a dense grid (metric × check × month × country, adding `check_name` and `recorded_at`). The scan writes its own hash-chained audit log in `runs/<scan id>/`.
+- **`copilot ops export`.** Rebuilds `ops_runs`, `ops_gate_decisions` and `ops_metric_catalog` in full from the run folders and the pack, so re-running it is safe. Request check results are not exported yet.
+- **Extra `ops_runs` columns.** The table adds `g2_escalations`, `accepted_findings`, `llm_replayed`, `backend` and `source_path`. `est_cost_eur` converts USD at the fixed `reporting_eur_per_usd` rate in `config/llm_pricing.yaml`.
+- **Catalogue flags.** `has_independent_path` is true only when the independent template reads different sources than the preferred one.
+
 ## 13. Security and guardrails
 
 ### 13.1 Tool allowlist per agent
@@ -811,15 +820,15 @@ supervisory-request-copilot/
 │   └── bigquery/               # dataset creation, access entries, table DDL (partitioning, clustering)
 ├── dashboards/
 │   ├── views/                  # generated mart view SQL (committed, reviewed in PRs)
-│   ├── generate_views.py       # domain pack -> mart view SQL
 │   └── screenshots/
 ├── looker/                     # LookML project, published to its own repo via git subtree
 │   ├── manifest.lkml
 │   ├── spb_oversight.model.lkml
 │   ├── views/                  # generated *.view.lkml
 │   ├── refinements/            # hand-written refinements (+view), never overwritten
-│   ├── dashboards/             # *.dashboard.lookml (generated + refined)
-│   └── generate_lookml.py      # domain pack -> LookML
+│   └── dashboards/             # *.dashboard.lookml (generated + refined)
+│   # generators live in src/copilot/marts/ and src/copilot/lookml/, so no Python is
+│   # published with the LookML project
 ├── domain_packs/payments/...
 ├── data/
 │   └── generator/              # seeded generator, defect injectors
@@ -918,8 +927,8 @@ Full model and dashboard specification: `docs/DASHBOARD_SPEC.md`.
 
 ```mermaid
 flowchart LR
-    DPK["Domain pack<br/>glossary, independent templates"] --> GV["generate_views.py"]
-    DPK --> GL["generate_lookml.py"]
+    DPK["Domain pack<br/>glossary, independent templates"] --> GV["copilot.marts<br/>(make views)"]
+    DPK --> GL["copilot.lookml<br/>(make lookml)"]
     THR[("spb_control.ewi_thresholds")] --> GV
     GV --> MARTS["spb_marts views<br/>additive components, RAG"]
     OPS[("spb_ops tables")] --> MARTS
@@ -946,7 +955,7 @@ A rate such as `chargeback_rate_value` must not be averaged across countries or 
 
 ### 21.3 Build and publish
 
-1. `make views` deploys the marts (as the owner).
+1. `make views` writes `dashboards/views/*.sql` and deploys the marts (as the owner, `CREATE OR REPLACE VIEW` with labels and the byte limit). Run `copilot dq scan` and `copilot ops export` first: views over `spb_ops` need those tables to exist. FR-D6 against the deployed views: `pytest -m bigquery tests/marts/test_consistency_bigquery.py`.
 2. `make lookml` writes `looker/`; unit tests check that every glossary metric appears as a measure with the right formula, description and tags, and that no generated file was hand-edited (header hash).
 3. `make lookml-publish` pushes `looker/` to the LookML project repo with `git subtree push`. If Looker accepts the main repo directly with a project subdirectory, simplify; verify when implementing.
 4. In Looker: pull to production after validation. `make lookml-check` runs project validation and the consistency test (FR-D6) through the Looker API or MCP Toolbox.
