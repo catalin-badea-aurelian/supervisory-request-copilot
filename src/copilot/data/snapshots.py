@@ -187,3 +187,22 @@ def verify_bigquery_snapshot(client: Any, snap: BigQuerySnapshot) -> None:
             client.get_table(snap.fq(t))
         except NotFound:
             raise SnapshotError(f"snapshot table {snap.fq(t)} no longer exists") from None
+
+
+def snapshot_from_manifest(m: dict[str, Any]) -> ParquetSnapshot | BigQuerySnapshot:
+    """Rebuild a stored run snapshot (rerun). The caller verifies it before use."""
+    if m.get("kind") == "duckdb":
+        return ParquetSnapshot(
+            str(m["root"]), dict(m["files"]), dict(m["sha256"]), m["snapshot_id"]
+        )
+    if m.get("kind") == "bigquery":
+        return BigQuerySnapshot(
+            project=m["project"],
+            dataset=m["dataset"],
+            run_ts=m["run_ts"],
+            expires_at=m["expires_at"],
+            mapping=dict(m["mapping"]),
+            sources=dict(m.get("sources", {})),
+            snapshot_id=m["snapshot_id"],
+        )
+    raise SnapshotError(f"unknown snapshot kind {m.get('kind')!r}")

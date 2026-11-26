@@ -79,3 +79,15 @@ def full_clean(tmp_path_factory) -> Dataset:
 @pytest.fixture(scope="session")
 def full_default(tmp_path_factory) -> Dataset:
     return _make(tmp_path_factory.mktemp("full_default"), "d", 1.0, ALL_DEFECTS)
+
+
+@pytest.fixture(autouse=True)
+def _no_llm_api(monkeypatch):
+    """Unit tests never call the LLM API: creating a real client fails the test."""
+    import anthropic
+
+    def refuse(*_a, **_k):
+        raise AssertionError("a test tried to create an Anthropic API client")
+
+    monkeypatch.setattr(anthropic, "Anthropic", refuse)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "")
