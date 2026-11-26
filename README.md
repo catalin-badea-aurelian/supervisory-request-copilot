@@ -12,7 +12,11 @@ LLMs sit inside bounded nodes. They draft, clarify and explain. They never pick 
 
 > Synthetic data only, for a fictional institution ("Synthetic Payments Bank"). Not affiliated with any real company. Not legal or regulatory advice.
 
-![Demo](docs/img/demo.gif)
+![End-to-end flow: agents, code checks, human gates, BigQuery, MCP and publishing](docs/img/flow.gif)
+
+*End-to-end flow. Purple: LLM agents (Claude). Blue: deterministic code. Amber: human gates. Green: data on BigQuery. Teal: publishing.*
+
+**[▶ Interactive walkthrough](https://catalin-badea-aurelian.github.io/supervisory-request-copilot/walkthrough/)**: the same flow with a worked example, step by step, with previous/next controls.
 
 ---
 
@@ -110,6 +114,8 @@ copilot gate GD <dashboard-id> --approve --reason "..."   # human gate -> publis
 2. **Reconcile.** Before anyone looks at it, every tile is recomputed from independent sources: the governed templates through the guarded session, the scan's audit log and the run folders. Any mismatch blocks the gate. The first end-to-end build (on the local test dataset) caught one: the top-10 merchant concentration tile included `XX` on the reference side but not in the mart, so the same tile was computed over two different country sets. It was fixed in the spec (the tile now declares the `XX` exclusion) and the build then reconciled 25 of 25 tiles.
 3. **Gate GD.** A human approves or rejects, with a reason, in the hash-chained audit log. Approval is refused if tiles do not reconcile or the page changed after reconciliation.
 4. **Publish.** Only an approved dashboard is copied to `docs/dashboard/` (with `evidence.md`: approver, reason, spec hash, data hash, per-tile reconciliation), and a GitHub Pages workflow publishes that folder. CI holds no credentials: the data is already in the approved file.
+
+![Dashboard walkthrough and gate GD approval](docs/img/demo.gif)
 
 | Risk overview | Data risk (BCBS 239) | Request operations |
 |---|---|---|

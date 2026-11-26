@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - "docs/dashboard/**"
+      - "docs/walkthrough/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -34,9 +35,15 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
+      - name: Assemble the site (approved dashboard at the root, static walkthrough under /walkthrough)
+        run: |
+          mkdir -p _site
+          cp -r docs/dashboard/. _site/
+          if [ -d docs/walkthrough ]; then cp -r docs/walkthrough _site/walkthrough; fi
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/dashboard
+          path: _site
 
       - id: deployment
         uses: actions/deploy-pages@v4
