@@ -16,7 +16,8 @@ ACCESS: dict[str, dict[str, str]] = {
     "raw": {"loader": "WRITER", "copilot": "READER"},
     "group": {"loader": "WRITER", "copilot": "READER"},
     "control": {"loader": "WRITER", "copilot": "READER"},
-    "snapshots": {"copilot": "WRITER"},
+    # the copilot gets the custom snapshot role instead (DATASET_IAM_BINDINGS, ADR 014)
+    "snapshots": {},
     "ops": {"copilot": "WRITER", "looker": "READER"},
     "marts": {"copilot": "READER", "looker": "READER"},
 }

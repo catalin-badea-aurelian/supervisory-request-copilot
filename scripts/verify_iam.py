@@ -8,7 +8,7 @@ guarded layer did). The exit code is non-zero if any check fails.
   policy-rejects-ddl-dml         DDL/DML is rejected by the SQL policy; no job is submitted
   dry-run-rejects-bytes          a query over the byte limit is rejected at dry run; no job runs
   snapshots                      spb-copilot creates, queries and drops a snapshot with expiry
-  snapshots-residual             (after step D) spb-copilot may create an ordinary table in
+  snapshots-residual             spb-copilot may create an ordinary table in
                                  spb_snapshots (residual, ADR 014), but cannot write data into
                                  it or delete it
 
@@ -283,11 +283,16 @@ def check_snapshots_residual(settings: Settings, copilot: Any, owner: Any) -> li
     t = bigquery.Table(name, schema=[bigquery.SchemaField("x", "INT64")])
     try:
         copilot.create_table(t)
+        try:  # table-level grants (read as the owner) explain any surprise below
+            policy = owner.get_iam_policy(name)
+            grants = "; ".join(f"{b['role']}={sorted(b['members'])}" for b in policy.bindings)
+        except Exception as e:  # noqa: BLE001
+            grants = f"unreadable ({type(e).__name__})"
         out.append(
             Result(
                 "snapshots-residual (create ordinary table: allowed, ADR 014)",
                 True,
-                f"created {name}",
+                f"created {name}; table IAM: {grants or 'none'}",
             )
         )
     except Exception as e:  # noqa: BLE001
@@ -328,16 +333,11 @@ CHECKS = [
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="verify-iam")
     ap.add_argument("--only", nargs="+", choices=CHECKS, help="run only these checks")
-    ap.add_argument(
-        "--after-step-d",
-        action="store_true",
-        help="include snapshots-residual (only meaningful after ADR 014 step D)",
-    )
     args = ap.parse_args(argv)
     settings = Settings.from_env()
     if not settings.gcp_project_id:
         raise SystemExit("GCP_PROJECT_ID is not configured")
-    selected = args.only or [c for c in CHECKS if c != "snapshots-residual" or args.after_step_d]
+    selected = args.only or CHECKS
     pack = load_pack("payments")
     copilot = make_client(settings, impersonate=settings.copilot_sa)
     results: list[Result] = []

@@ -131,7 +131,7 @@ help = "Validate the LookML project and run the dashboard consistency test (not 
 
 [tool.poe.tasks.verify-iam]
 cmd = "python scripts/verify_iam.py"
-help = "Prove least privilege on BigQuery: denied writes, denied reads, SQL policy, byte limit, snapshots (--only, --after-step-d)"
+help = "Prove least privilege on BigQuery: denied writes, denied reads, SQL policy, byte limit, snapshots and the ADR 014 residual (--only to select)"
 
 [tool.poe.tasks.corpus]
 cmd = "python scripts/fetch_corpus.py"

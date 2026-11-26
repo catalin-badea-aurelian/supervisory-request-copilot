@@ -6,7 +6,7 @@ project owner, through the installed Google Cloud SDK), and nothing else.
 
   python scripts/iam_snapshot_role.py --step a            # print step A
   python scripts/iam_snapshot_role.py --step a --apply    # create the custom role
-  python scripts/iam_snapshot_role.py --step b --apply    # bind it on spb_snapshots only
+  python scripts/iam_snapshot_role.py --step b --apply    # GRANT it on spb_snapshots only
   python scripts/iam_snapshot_role.py --step d --apply    # remove WRITER on spb_snapshots
   python scripts/iam_snapshot_role.py --rollback          # print the rollback commands
 
@@ -41,9 +41,6 @@ def _sdk(tool: str) -> str:
 
 def commands(settings: Settings, step: str) -> list[list[str]]:
     p = settings.gcp_project_id
-    member = f"serviceAccount:{settings.copilot_sa}"
-    role = f"projects/{p}/roles/{spec.SNAPSHOT_ROLE_ID}"
-    dataset = f"{p}:{spec.dataset_id(settings.dataset_prefix, 'snapshots')}"
     if step == "a":
         return [
             [
@@ -59,14 +56,32 @@ def commands(settings: Settings, step: str) -> list[list[str]]:
                 "--stage=GA",
             ]
         ]
-    if step == "b":
-        return [["bq", "add-iam-policy-binding", f"--member={member}", f"--role={role}", dataset]]
     if step == "rollback":
-        return [
-            ["bq", "remove-iam-policy-binding", f"--member={member}", f"--role={role}", dataset],
-            ["gcloud", "iam", "roles", "delete", spec.SNAPSHOT_ROLE_ID, f"--project={p}"],
-        ]
+        return [["gcloud", "iam", "roles", "delete", spec.SNAPSHOT_ROLE_ID, f"--project={p}"]]
     raise ValueError(step)
+
+
+def dcl(settings: Settings, verb: str) -> str:
+    """Step B: dataset-scoped binding through BigQuery DCL (`bq add-iam-policy-binding` on a
+    dataset needs allowlisting in this project, see ADR 014)."""
+    p = settings.gcp_project_id
+    role = f"projects/{p}/roles/{spec.SNAPSHOT_ROLE_ID}"
+    schema = f"{p}.{spec.dataset_id(settings.dataset_prefix, 'snapshots')}"
+    member = f"serviceAccount:{settings.copilot_sa}"
+    prep = "TO" if verb == "GRANT" else "FROM"
+    return f'{verb} `{role}`\nON SCHEMA `{schema}`\n{prep} "{member}"'
+
+
+def apply_dcl(settings: Settings, verb: str) -> None:
+    from google.cloud import bigquery
+
+    from copilot.data.bigquery_clients import job_labels, make_client
+
+    client = make_client(settings)  # the owner (developer ADC), not a service account
+    cfg = bigquery.QueryJobConfig(labels=job_labels("iam", "adr014-step-b"))
+    job = client.query(dcl(settings, verb), job_config=cfg)
+    job.result()
+    print(f"{verb} applied (job {job.job_id})")
 
 
 def step_d_plan(settings: Settings) -> str:
@@ -114,9 +129,17 @@ def main(argv: list[str] | None = None) -> int:
     if not settings.gcp_project_id or not settings.copilot_sa or "<" in settings.copilot_sa:
         raise SystemExit("GCP_PROJECT_ID and COPILOT_SA must be set in .env")
     if args.rollback:
+        print(dcl(settings, "REVOKE") + ";")
         for c in commands(settings, "rollback"):
             print(show(c))
         print("\n(printed only; run them yourself if you decide to roll back)")
+        return 0
+    if args.step == "b":
+        print(dcl(settings, "GRANT"))
+        if args.apply:
+            apply_dcl(settings, "GRANT")
+        else:
+            print("\nDRY RUN: nothing changed. Re-run with --apply to execute.")
         return 0
     if args.step == "d":
         print(step_d_plan(settings))
@@ -133,7 +156,9 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     for c in cmds:
         exe = _sdk(c[0])
-        result = subprocess.run([exe, *c[1:]], check=False)
+        # bq shells out to gcloud for credentials, so the SDK bin dir must be on PATH
+        env = {**os.environ, "PATH": str(Path(exe).parent) + os.pathsep + os.environ["PATH"]}
+        result = subprocess.run([exe, *c[1:]], check=False, env=env)
         if result.returncode != 0:
             print(f"step {args.step} failed (exit {result.returncode}); nothing else was run")
             return result.returncode
