@@ -26,3 +26,4 @@ corpus/
 .idea/
 .DS_Store
 Thumbs.db
+.flow-work/
