@@ -411,7 +411,7 @@ Total is about 5.5 minutes; drop S3 or the evals step if time is short.
 ### Open items
 
 - ~~**M2: explicit "unallocated (XX)" line in V-REC-01.**~~ Resolved in M2: V-REC-01 reports a total line, an explicit unallocated (XX) line and the breaking countries. With D2 alone it is WARN (allocation differences covered by the XX volume); V-COMP-01 carries the FAIL (ARCHITECTURE §9.1).
-- **M3: snapshot permission.** Verified on the live project: `spb-copilot` with READER on the sources and WRITER on `spb_snapshots` can create a snapshot, but not with an `expiration_timestamp` (and cannot drop it): that needs `bigquery.tables.deleteSnapshot`, which dataset WRITER lacks. Decide in M3 between dataset-level OWNER for `spb-copilot` on `spb_snapshots` only (simplest, still confined to that dataset) or a custom role on that dataset.
+- ~~**M3: snapshot permission.**~~ Resolved in M3 (ADR 014): a custom role `spbSnapshotManager` (create, read and delete snapshots, plus `tables.create`, which snapshots require) is granted to `spb-copilot` on `spb_snapshots` only, and its WRITER entry there was removed. verify-iam proves snapshots with expiration work, source datasets stay read-only, and the copilot cannot write data into or delete an ordinary table in `spb_snapshots`. The residual right to create an empty table there is recorded in the ADR.
 - **M8: `XX` in the dashboards.** See `docs/DASHBOARD_SPEC.md` §4.1 and §4.2.
 
 ## 14. Terms
