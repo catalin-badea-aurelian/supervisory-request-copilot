@@ -77,7 +77,7 @@ def ask(
     state = drive(
         rt, rid, answerer, raw_request=text, requester=script.requester if script else requester
     )
-    cons.summary(state)
+    cons.summary(state, mode)
 
 
 @app.command()
@@ -98,7 +98,7 @@ def resume(
     mode = _mode(live, record) or "replay"
     rt = cons.build_runtime(settings, mode, Path(cfg["recordings"]), cfg.get("backend"))
     answerer = cons.logging_answerer(Script.load(answers)) if answers else cons.interactive
-    cons.summary(drive(rt, request_id, answerer))
+    cons.summary(drive(rt, request_id, answerer), mode)
 
 
 @app.command()

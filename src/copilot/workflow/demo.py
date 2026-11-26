@@ -40,7 +40,7 @@ def run_demo(settings: Settings, scenarios: list[str], mode: str, backend: str |
             raw_request=script.request,
             requester=script.requester,
         )
-        cons.summary(state)
+        cons.summary(state, mode)
         chain = verify_chain(rt.run_dir(rid))
         cons.console.print(
             f"audit verify: {'OK' if chain.ok else 'BROKEN'} ({chain.events} events)"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,12 @@ from copilot.llm.transport import make_transport
 from copilot.packs.loader import load_pack
 from copilot.workflow.graph import Runtime
 
+# Model-written text may contain any character; a legacy Windows console (cp1252) must not
+# crash on it, so unprintable characters are replaced instead of raising.
+for _stream in (sys.stdout, sys.stderr):
+    reconfigure = getattr(_stream, "reconfigure", None)
+    if reconfigure is not None:
+        reconfigure(errors="replace")
 console = Console()
 
 
@@ -66,8 +73,8 @@ def show_pending(p: dict[str, Any]) -> None:
     if p.get("gate") == "G1" and "spec" in details:
         s = details["spec"]
         body.append(
-            f"metrics {s['metrics']} · dims {s['dimensions']} · filters {s['filters']} · "
-            f"{s['period']['start']}..{s['period']['end']} ({s['period']['grain']}) · "
+            f"metrics {s['metrics']} | dims {s['dimensions']} | filters {s['filters']} | "
+            f"{s['period']['start']}..{s['period']['end']} ({s['period']['grain']}) | "
             f"as-of {s['as_of_date']}"
         )
     if p.get("gate") == "G2":
@@ -101,13 +108,13 @@ def logging_answerer(inner: Any) -> Any:
         show_pending(p)
         value = inner(p)
         if value is not None and p.get("type") != "questions":
-            console.print(f"  → [bold]{value.get('decision')}[/bold] ({value.get('actor')})")
+            console.print(f"  -> [bold]{value.get('decision')}[/bold] ({value.get('actor')})")
         return value
 
     return answer
 
 
-def summary(state: dict[str, Any]) -> None:
+def summary(state: dict[str, Any], mode: str = "replay") -> None:
     rid = state.get("request_id")
     status = state.get("status")
     b = state.get("budget", {})
@@ -124,6 +131,7 @@ def summary(state: dict[str, Any]) -> None:
         console.print(
             f"LLM: {b.get('calls', 0)} calls, {b.get('tokens_in', 0):,} in / "
             f"{b.get('tokens_out', 0):,} out tokens, ${b.get('cost_usd', 0):.4f}"
+            + (" (replayed from recordings: no API cost now)" if mode == "replay" else "")
         )
 
 

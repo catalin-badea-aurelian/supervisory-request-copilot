@@ -193,3 +193,27 @@ def test_live_and_record_refused_in_ci(monkeypatch, tmp_path: Path):
 
 def test_default_mode_is_replay():
     assert Settings().llm_mode == "replay"
+
+
+def _objects(node):
+    if isinstance(node, dict):
+        if node.get("type") == "object" and "properties" in node:
+            yield node
+        for v in node.values():
+            yield from _objects(v)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _objects(v)
+
+
+def test_llm_schemas_require_every_field():
+    """A model must not answer by omitting fields (seen live: the spec packed into `title`)."""
+    from copilot.agents.explainer import Explanation
+    from copilot.contracts.analysis import QueryPlan
+    from copilot.contracts.request import IntakeTurn
+    from copilot.llm.schema import output_schema
+
+    for model in (IntakeTurn, QueryPlan, Explanation):
+        for obj in _objects(output_schema(model)):
+            assert sorted(obj["required"]) == sorted(obj["properties"]), model.__name__
+            assert obj.get("additionalProperties") is False
