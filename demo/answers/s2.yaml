@@ -1,0 +1,33 @@
+# S2, defect caught (docs/PROJECT_SPEC.md section 6). Scripted requester and approver answers,
+# matched by question topic and gate. Logged with actor "scripted-demo".
+scenario: s2
+request: >
+  The supervisor asks for the chargeback rate by merchant country for July-August 2025,
+  monthly.
+requester: risk-data-requester
+answers:
+  metric_variant: Value-based rate (value of chargebacks over value of settled transactions).
+  attribution: Month of the original transaction, as in the governed definition.
+  perimeter: All merchant countries in scope, no subset.
+  as_of: Use 2025-10-15 as the as-of date.
+  grain: Monthly.
+  period: July and August 2025, that is 2025-07-01 to 2025-08-31.
+  output_format: A table only.
+  precedent: No earlier submission covers this period.
+  other: No further constraints.
+gates:
+  G1:
+    - {decision: approve, role: requester, comment: Specification confirmed.}
+  G2:
+    - decision: independent_path
+      comment: >
+        Deliver from the independent raw-source path; document the group-product defect as a
+        limitation and send the issue note to the data owner.
+  G3:
+    - decision: approve
+      comment: Figures, accepted findings and warnings reviewed.
+      acknowledged_warnings:
+        - chargeback_rate_value:V-MAT-01
+        - chargeback_rate_value:V-VAR-01
+expected:
+  status: DELIVERED
