@@ -1,0 +1,29 @@
+# S1, happy path (docs/PROJECT_SPEC.md section 6). Scripted requester and approver answers,
+# matched by question topic and gate. Logged with actor "scripted-demo".
+scenario: s1
+request: >
+  The supervisor asks for the chargeback rate by merchant country and merchant category for
+  Q1-Q2 2025. Needed by Friday.
+requester: risk-data-requester
+answers:
+  metric_variant: Value-based rate (value of chargebacks over value of settled transactions).
+  attribution: Month of the original transaction, as in the governed definition.
+  perimeter: All merchant countries in scope, no subset.
+  as_of: Use 2025-10-15 as the as-of date.
+  grain: Quarterly.
+  period: Q1 and Q2 2025, that is 2025-01-01 to 2025-06-30.
+  output_format: A table only.
+  precedent: >
+    Yes, Q1 2025 was submitted before. Report on the governed definition and explain any
+    difference to the earlier submission.
+  other: No further constraints.
+gates:
+  G1:
+    - {decision: approve, role: requester, comment: Specification confirmed.}
+  G3:
+    - decision: approve
+      comment: Figures and warnings reviewed.
+      acknowledged_warnings:
+        - chargeback_rate_value:V-VAR-01
+expected:
+  status: DELIVERED

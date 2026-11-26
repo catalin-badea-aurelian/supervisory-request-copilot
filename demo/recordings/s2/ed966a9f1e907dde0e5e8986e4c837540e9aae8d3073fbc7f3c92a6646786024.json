@@ -1,0 +1,16 @@
+{
+  "key": "ed966a9f1e907dde0e5e8986e4c837540e9aae8d3073fbc7f3c92a6646786024",
+  "model_requested": "claude-sonnet-5-5",
+  "prompt_ref": "analyst@1.0.0",
+  "response": {
+    "model": "claude-sonnet-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"items\":[{\"dimensions\":[\"period\",\"merchant_country\"],\"filters\":[],\"metric_id\":\"chargeback_rate_value\",\"non_template\":false,\"rationale\":\"The governed chargeback_rate_value template (v1.1.0) on its preferred source grp_merchant_monthly supports both period and merchant_country and answers the spec directly.\",\"source_path\":\"preferred\"}],\"rationale\":\"The governed template for chargeback_rate_value answers the spec (July-August 2025, by month and merchant country, no filters, as of 2025-10-15) because both requested dimensions are allowed. The definition lists no limitations, but chargebacks are attributed to the original transaction month, so recent months may still change, and merchant country is joined as stored.\"}",
+    "usage": {
+      "cache_creation_input_tokens": 1126,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 571,
+      "output_tokens": 244
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "key": "512dbe85696b759fd97a05f91ea4251bd7f940a0365fab169d086a9733cb77bb",
+  "model_requested": "claude-sonnet-5-5",
+  "prompt_ref": "intake@1.0.1",
+  "response": {
+    "model": "claude-sonnet-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"draft\":{\"as_of_date\":null,\"assumptions\":[\"Merchant category is interpreted as the mcc_group dimension.\",\"Q1-Q2 2025 is interpreted as 2025-01-01 to 2025-06-30.\",\"Deadline 'Friday' not converted to a date because the current date is unknown.\"],\"deadline\":null,\"dimensions\":[\"merchant_country\",\"mcc_group\"],\"filters\":[],\"grain\":null,\"metrics\":[],\"output_format\":null,\"period_end\":\"2025-06-30\",\"period_start\":\"2025-01-01\",\"title\":\"Chargeback rate by country and MCC group, H1 2025\"},\"precedent_refs\":[\"SUB:chargeback_rate_value:2025-Q1\"],\"questions\":[{\"text\":\"Should the chargeback rate be value-based (chargeback_rate_value) or count-based per 1,000 transactions (chargeback_rate_count)?\",\"topic\":\"metric_variant\"},{\"text\":\"The glossary attributes chargebacks to the month of the original transaction (transaction_month). Is that the attribution you want?\",\"topic\":\"attribution\"},{\"text\":\"Should all merchant countries be included (DE, FR, ES, IT, NL, BE, LU, IE, XX), or only a subset?\",\"topic\":\"perimeter\"},{\"text\":\"What is the data cut-off (as-of) date for the figures?\",\"topic\":\"as_of\"},{\"text\":\"Should results be shown monthly or quarterly?\",\"topic\":\"grain\"},{\"text\":\"Do you want a table only, or a table plus a short narrative?\",\"topic\":\"output_format\"},{\"text\":\"Q1 2025 chargeback figures were submitted on 2025-05-06 (SUB:chargeback_rate_value:2025-Q1, value-based). Must the new Q1 figures be consistent with that submission?\",\"topic\":\"precedent\"},{\"text\":\"What is the exact deadline date for 'Friday'?\",\"topic\":\"other\"}],\"reasoning\":\"The chargeback rate has two glossary variants (value and count), so the metric cannot be chosen without asking. As-of date, perimeter, grain, attribution and output format were not stated, so they are left open. An earlier Q1 2025 chargeback_rate_value submission overlaps the requested period, so consistency needs confirming.\",\"undefined_measures\":[],\"undefined_metric\":false}",
+    "usage": {
+      "cache_creation_input_tokens": 2724,
+      "cache_read_input_tokens": 0,
+      "input_tokens": 5120,
+      "output_tokens": 771
+    }
+  }
+}

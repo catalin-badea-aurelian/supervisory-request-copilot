@@ -1,0 +1,16 @@
+{
+  "key": "7a13dfb89bdbc6b0e84db5679f9e74a82ef0daf0d898da80070bd96c92ed97ce",
+  "model_requested": "claude-haiku-5-5",
+  "prompt_ref": "failure_explainer@1.1.0",
+  "response": {
+    "model": "claude-haiku-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"impact\": \"If delivered as is, the ES figures for 2025-08-01 in grp_merchant_monthly are overstated. Settled volume is reported as 1,793,696.26 against an expected 896,848.13, a ratio of 2.00×, and chargeback amount as 6,334.78 against an expected 3,167.39, also 2.00×. The chargeback rate value for this slice is therefore unreliable, and the gap accounts for 100.0% of the total reconciliation gap.\", \"likely_cause\": \"likely cause, supported by V-PK-01, V-DUAL-01, V-REC-01: duplicated rows in grp_merchant_monthly for ES 2025-08-01, since 10 duplicate keys appear in that source and 0 in src_chargebacks, src_merchants and src_transactions, which points to duplicated rows in the aggregate rather than duplicated transactions.\", \"summary\": \"Key uniqueness check V-PK-01 failed for grp_merchant_monthly, merchant country ES, period 2025-08-01, with 10 duplicate keys. The same slice also failed the independent recomputation (max relative difference 50.0% against a threshold of 0.1%) and the ledger reconciliation, where settled volume and chargeback amount are both 2.00× their expected values.\"}",
+    "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 912,
+      "input_tokens": 930,
+      "output_tokens": 432
+    }
+  }
+}

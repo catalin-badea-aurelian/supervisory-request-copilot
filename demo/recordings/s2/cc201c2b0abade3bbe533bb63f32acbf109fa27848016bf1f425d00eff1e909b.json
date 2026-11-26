@@ -1,0 +1,16 @@
+{
+  "key": "cc201c2b0abade3bbe533bb63f32acbf109fa27848016bf1f425d00eff1e909b",
+  "model_requested": "claude-sonnet-5-5",
+  "prompt_ref": "intake@1.0.1",
+  "response": {
+    "model": "claude-sonnet-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"draft\":{\"as_of_date\":\"2025-10-15\",\"assumptions\":[\"Chargeback rate is read as chargeback_rate_value, per the requester's answer.\",\"July-August 2025 means 2025-07-01 to 2025-08-31.\",\"No filters apply because all merchant countries are in scope.\"],\"deadline\":null,\"dimensions\":[\"merchant_country\"],\"filters\":[],\"grain\":\"month\",\"metrics\":[\"chargeback_rate_value\"],\"output_format\":\"table\",\"period_end\":\"2025-08-31\",\"period_start\":\"2025-07-01\",\"title\":\"Chargeback rate (value) by merchant country, Jul-Aug 2025\"},\"precedent_refs\":[],\"questions\":[],\"reasoning\":\"All required topics (metric variant, attribution, perimeter, as-of date, grain, output format) are answered or stated in the request. Earlier submissions cover only 2024-Q4 and 2025-Q1, so they do not overlap July-August 2025 and no precedent question is needed. The metric is defined in the glossary.\",\"undefined_measures\":[],\"undefined_metric\":false}",
+    "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 2724,
+      "input_tokens": 5445,
+      "output_tokens": 361
+    }
+  }
+}

@@ -7,8 +7,11 @@ license = { text = "MIT" }
 authors = [{ name = "Catalin Badea" }]
 requires-python = ">=3.11"
 dependencies = [
+    "anthropic>=2.14.0",
     "duckdb>=2.0.1",
     "jinja2>=3.1.6",
+    "langgraph>=1.2.24",
+    "langgraph-checkpoint-sqlite>=3.1.3",
     "mcp>=1.2",
     "numpy>=2.4.6",
     "pandas>=3.1.1",
@@ -54,6 +57,10 @@ include = ["src/**/*.py", "tests/**/*.py", "scripts/**/*.py", "*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# Typer declares CLI parameters as call defaults
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
 
 [tool.mypy]
 python_version = "3.11"
@@ -142,5 +149,5 @@ cmd = "python scripts/_stub.py eval M7"
 help = "Evaluation harness -> evals/REPORT.md (not yet implemented, lands in M7)"
 
 [tool.poe.tasks.demo]
-cmd = "python scripts/_stub.py demo M7"
-help = "Run the demo scenarios end to end with scripted human answers (not yet implemented, lands in M7)"
+cmd = "python -m copilot.cli demo"
+help = "Run S1 and S2 end to end with scripted answers (replay: recorded LLM responses, no API calls; add --record to call the API and re-record)"

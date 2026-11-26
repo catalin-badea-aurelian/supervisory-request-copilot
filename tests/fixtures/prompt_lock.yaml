@@ -1,0 +1,7 @@
+# Prompt lock: the SHA-256 of each prompt body, by id@version (tests/test_prompt_lock.py).
+# Changing a prompt body requires a version bump, a new line here and a re-record of the
+# affected demo recordings (copilot demo --record).
+analyst@1.0.0: 9367f8bd8c9eae5282c65e2128ff056ef391b017509a555d16e0dfa80c963efe
+failure_explainer@1.0.0: 95b13eb30a49005fc3eb24c09d0c138d2ddaca2d026e16ae524755067d9368ca
+intake@1.0.1: f4e8d3ebe28090420cf539c871533cb3c4fec70cc74b9a74c56c5a095e064b8d
+failure_explainer@1.1.0: 8f2b5614ea0370115c58e7b8d7eaf9c183ab549487bb9eb8105b2a414ba817e5

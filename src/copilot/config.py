@@ -26,6 +26,12 @@ class Settings:
     parquet_dir: Path = REPO_ROOT / "data" / "parquet" / "default"
     model_main: str = "claude-sonnet-5-5"
     model_fast: str = "claude-haiku-5-5"
+    llm_mode: str = "replay"  # replay | record | live (ADR 015)
+    run_token_budget: int = 150_000
+    usd_eur: float = 0.92
+    llm_timeout_s: float = 120.0
+    llm_max_retries: int = 2
+    runs_dir: Path = REPO_ROOT / "runs"
 
     def dataset(self, layer: str) -> str:
         """Dataset name for a layer, e.g. 'raw' -> 'spb_raw'."""
@@ -51,4 +57,10 @@ class Settings:
             ),
             model_main=e.get("COPILOT_MODEL_MAIN", "claude-sonnet-5-5"),
             model_fast=e.get("COPILOT_MODEL_FAST", "claude-haiku-5-5"),
+            llm_mode=e.get("COPILOT_LLM_MODE", "replay"),
+            run_token_budget=int(e.get("COPILOT_RUN_TOKEN_BUDGET", "150000")),
+            usd_eur=float(e.get("COPILOT_USD_EUR", "0.92")),
+            llm_timeout_s=float(e.get("COPILOT_LLM_TIMEOUT_S", "120")),
+            llm_max_retries=int(e.get("COPILOT_LLM_MAX_RETRIES", "2")),
+            runs_dir=Path(e.get("COPILOT_RUNS_DIR", str(REPO_ROOT / "runs"))),
         )
