@@ -147,6 +147,7 @@ copilot dq scan --as-of 2025-10-15   # as spb-copilot; creates and fills spb_ops
 copilot ops export                   # as spb-copilot; ops_runs, ops_gate_decisions, ops_metric_catalog
 make views                    # as you; generated SQL committed under dashboards/views/
 pytest -m bigquery tests/marts/test_consistency_bigquery.py   # FR-D6 on the deployed views
+copilot dashboard build --scan --backend bigquery   # then: copilot gate GD <id> --approve --reason "..."
 ```
 
 The order matters. The views over `spb_ops` need its tables, and the copilot creates them on first write with its WRITER role, so no new access is needed. The views read the sources through the authorised-dataset entries from `make bq-setup`.
@@ -234,7 +235,9 @@ Only if you want a public link after the Looker trial ends.
 gcloud projects delete "$PROJECT"
 ```
 
-## 12. Looker (Google Cloud core) trial
+## 12. Looker (Google Cloud core) trial — optional
+
+> **Optional (ADR 016).** Free-trial billing projects have no Looker quota, and the project's dashboard is now agent-generated HTML (`copilot dashboard build`). Everything below is kept for anyone who has an instance. `make lookml-publish` and `make lookml-check` require one and say so. The trial-deletion rule (before day 30) applies only if you create an instance. Known limitation: the dashboard job reads the marts with the copilot identity; the `spb-looker` service account is kept for a future Looker connection, and its read access to the marts is not verified yet.
 
 ### 12.1 What the trial gives you
 

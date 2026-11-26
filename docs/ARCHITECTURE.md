@@ -921,6 +921,15 @@ Full ADRs live in `docs/adr/`. Summary:
 
 ## 21. Oversight dashboard
 
+> **ADR 016 (`docs/adr/016-presentation-layer.md`): presentation layer = agent-generated dashboard-as-code.** No Looker trial quota is available on free-trial billing projects, so the dashboard is built by the copilot: `copilot dashboard build` writes a validated spec from the domain pack, renders one self-contained HTML file from `spb_marts` (Plotly embedded), reconciles every tile against independent sources, and waits at gate GD. The sections below describe the layers; the Looker parts (the LookML layer and 21.4) apply only if an instance exists and are kept as a deploy-ready artefact.
+
+### 21.0 Dashboard build (`src/copilot/dashboard/`)
+
+- `spec.py`: the contract (pages, tiles, metric ids, dimensions, thresholds). Validation allows only approved glossary metrics, their allowed dimensions, the pack's thresholds and known marts.
+- `build.py`: deterministic spec; optional captions through the gateway with the number guard (prompt `dashboard_captions`).
+- `figures.py`: the numbers of each tile, written against one `Data` interface. `data.py` implements it for the marts (what is shown) and for a reference (governed templates through the guarded session, the scan's audit log, the run folders). `reconcile.py` compares the two per tile; `render.py` draws only these figures.
+- `workflow.py`: `build_dashboard` (spec file, candidate in `runs/<id>/dashboard/`, reconciliation, audit events `dashboard_built` and `reconciliation_completed`) and `decide_gd`. Approval is refused when the reconciliation found a mismatch or the candidate changed; only approval copies to `docs/dashboard/`.
+
 Full model and dashboard specification: `docs/DASHBOARD_SPEC.md`.
 
 ### 21.1 Layers

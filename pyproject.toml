@@ -59,6 +59,10 @@ include = ["src/**/*.py", "tests/**/*.py", "scripts/**/*.py", "*.py"]
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# HTML and JS strings in the renderer are easier to read unwrapped
+"src/copilot/dashboard/render.py" = ["E501"]
+
 [tool.ruff.lint.flake8-bugbear]
 # Typer declares CLI parameters as call defaults
 extend-immutable-calls = ["typer.Option", "typer.Argument"]
@@ -130,12 +134,16 @@ cmd = "python -m copilot.cli lookml"
 help = "Generate LookML (views, explores, model, dashboards) from the domain pack into looker/"
 
 [tool.poe.tasks.lookml-publish]
-cmd = "python scripts/_stub.py lookml-publish M8"
-help = "Push looker/ to the Looker project repo (not yet implemented, lands in M8)"
+cmd = "python scripts/looker_required.py lookml-publish"
+help = "Push looker/ to the Looker project repo (requires a Looker instance; optional, ADR 016)"
 
 [tool.poe.tasks.lookml-check]
-cmd = "python scripts/_stub.py lookml-check M8"
-help = "Validate the LookML project and run the dashboard consistency test (not yet implemented, lands in M8)"
+cmd = "python scripts/looker_required.py lookml-check"
+help = "Validate the LookML project and run the consistency test through Looker (requires a Looker instance; optional, ADR 016)"
+
+[tool.poe.tasks.dashboard]
+cmd = "python -m copilot.cli dashboard build"
+help = "Build the oversight dashboard: spec, candidate HTML and tile reconciliation (--scan for the latest scan); then copilot gate GD"
 
 [tool.poe.tasks.verify-iam]
 cmd = "python scripts/verify_iam.py"

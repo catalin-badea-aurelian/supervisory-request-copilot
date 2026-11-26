@@ -8,6 +8,8 @@
 
 ---
 
+> **Presentation layer (ADR 016).** The three pages below are produced as an agent-generated, self-contained HTML dashboard (`copilot dashboard build`, approved at gate GD, published from `docs/dashboard/`). The LookML in sections 3 and 4.4 is still generated and tested, and is kept as a deploy-ready artefact for an optional Looker instance. Tile content is the same in both.
+
 ## 1. Purpose
 
 The dashboards give an **independent, current view of risk and of the data behind it**. They answer one question first:
@@ -253,6 +255,8 @@ R1 is a **genuine risk signal planted in clean data** (see PROJECT_SPEC §8.4). 
 - No logos or names of real institutions.
 
 ## 8. Build workflow
+
+**Default (ADR 016):** `copilot dq scan` and `copilot ops export`, `make views`, then `copilot dashboard build --scan` (spec, candidate, tile reconciliation) and `copilot gate GD <id> --approve --reason "..."`. The approved page lands in `docs/dashboard/index.html`; the tile list is in `dashboards/specs/<id>.yaml`. The sections below are the optional Looker route.
 
 ### 8a — Before the trial (no instance needed)
 

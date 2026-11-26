@@ -41,6 +41,8 @@ EVENT_TYPES = frozenset(
         "snapshot_taken",
         "scan_started",
         "ops_exported",
+        "dashboard_built",
+        "reconciliation_completed",
     }
 )
 
