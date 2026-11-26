@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, TypeVar
 
@@ -25,6 +26,10 @@ from copilot.llm.schema import output_schema
 from copilot.llm.transport import LlmRequest, LlmResponse, Transport, Usage
 
 T = TypeVar("T", bound=BaseModel)
+
+
+class _CheckFailed(Exception):
+    pass
 
 
 class LlmEscalation(RuntimeError):
@@ -104,8 +109,16 @@ class Gateway:
         return self.settings.model_main if prompt.tier == "main" else self.settings.model_fast
 
     def call(
-        self, prompt_name: str, data: Any, output_model: type[T], ctx: CallContext
+        self,
+        prompt_name: str,
+        data: Any,
+        output_model: type[T],
+        ctx: CallContext,
+        validate: Callable[[T], str | None] | None = None,
     ) -> tuple[T, LlmCallRecord]:
+        """`validate` is a code check on the parsed output (for example the number guard). It
+        returns an error message or None; a failure gets the same single retry as a schema
+        error, then escalates."""
         prompt = load_prompt(prompt_name)
         model = self.model_for(prompt)
         schema = output_schema(output_model)
@@ -152,8 +165,16 @@ class Gateway:
                 raise LlmEscalation(prompt.ref, "output truncated at max_tokens")
             try:
                 parsed = output_model.model_validate_json(response.text)
-            except ValidationError as e:
-                error = _short_errors(e)
+                problem = validate(parsed) if validate is not None else None
+                if problem:
+                    raise _CheckFailed(problem)
+            except (ValidationError, _CheckFailed) as e:
+                if isinstance(e, ValidationError):
+                    error = _short_errors(e)
+                    note = "Your answer did not validate against the schema:\n"
+                else:
+                    error = str(e)
+                    note = "Your answer did not pass a code check:\n"
                 if attempt == 2:
                     self._audit(
                         ctx,
@@ -174,9 +195,7 @@ class Gateway:
                     ("assistant", response.text),
                     (
                         "user",
-                        "Your answer did not validate against the schema:\n"
-                        + error
-                        + "\nReturn a corrected answer for the same data.",
+                        note + error + "\nReturn a corrected answer for the same data.",
                     ),
                 ]
                 continue
