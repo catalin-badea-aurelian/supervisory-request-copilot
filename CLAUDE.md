@@ -55,7 +55,7 @@ When in doubt about scope: **fewer features working perfectly beats more feature
 | Semantic layer + BI | **Looker (Google Cloud core, trial)**: LookML views, explores and **LookML dashboards generated from the domain pack**, versioned in `looker/` |
 | BI automation | MCP Toolbox for Databases (Looker source), used by Claude Code to validate, query and prototype dashboards |
 | BI fallback (optional) | Looker Studio on the same `spb_marts` views, for a public view-only link |
-| MCP (own server) | Official Python MCP SDK (FastMCP) |
+| MCP (own server) | Official Python MCP SDK 2.x (`MCPServer`, formerly FastMCP) |
 | RAG | `pypdf` ingestion, `sentence-transformers` embeddings + `rank-bm25`, flat local index |
 | Output | Jinja2 → Markdown + HTML evidence packs |
 | CLI | Typer + Rich |

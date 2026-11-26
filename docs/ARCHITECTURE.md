@@ -65,7 +65,7 @@ flowchart LR
 flowchart TB
     subgraph IF["Interfaces"]
         CLI["CLI - Typer"]
-        MCPS["MCP server - FastMCP"]
+        MCPS["MCP server - MCPServer"]
     end
 
     subgraph WF["Workflow - LangGraph StateGraph"]
@@ -830,7 +830,7 @@ supervisory-request-copilot/
 | BI automation | MCP Toolbox for Databases (Looker) | Lets Claude Code validate the project, run queries and prototype dashboards |
 | BI fallback | Looker Studio on the same marts (optional) | Free public view-only link after the trial ends |
 | SQL policy | sqlglot | Real parsing for policy enforcement and dialect transpilation |
-| MCP | Python MCP SDK (FastMCP) | Standard protocol; the same governed layer serves AI assistants (Level 1) and the workflow |
+| MCP | Python MCP SDK 2.x (`MCPServer`, formerly FastMCP) | Standard protocol; the same governed layer serves AI assistants (Level 1) and the workflow |
 | Retrieval | BM25 + small local embeddings | Small corpus; no external vector service; offline and free |
 | Evidence | Jinja2 → Markdown/HTML | Human-readable, diffable, easy to attach |
 | CLI | Typer + Rich | Clear gate prompts in the terminal |
