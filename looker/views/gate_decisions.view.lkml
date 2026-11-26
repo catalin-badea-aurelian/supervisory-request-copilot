@@ -1,5 +1,5 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
-# content-sha256: bd17a34a4fe643a2695666c3b8f9f68a8fb2e764d2d4ec53d014e0ccb199b39a
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
+# content-sha256: 033f03d4c5aff4eed90c10be093547336e7690ebd26fbc3b23e6cd56658536e2
 view: gate_decisions {
   sql_table_name: `@{DATASET_PREFIX}_marts.mart_gate_decisions` ;;
   dimension: decision_id {
@@ -11,6 +11,16 @@ view: gate_decisions {
   dimension: request_id {
     type: string
     sql: ${TABLE}.request_id ;;
+  }
+
+  dimension: request_title {
+    type: string
+    sql: ${TABLE}.request_title ;;
+  }
+
+  dimension: request_status {
+    type: string
+    sql: ${TABLE}.request_status ;;
   }
 
   dimension: gate {

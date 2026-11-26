@@ -1,4 +1,4 @@
--- GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+-- GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 -- view: mart_ewi_monthly
 WITH v AS (
   SELECT period AS period_month, merchant_country, 'active_merchants' AS metric_id, '1.0.0' AS metric_version, CAST(active_merchants AS FLOAT64) AS value

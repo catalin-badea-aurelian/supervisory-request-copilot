@@ -1,4 +1,4 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 # content-sha256: 98315205f80d6ae288e70aca7b21e0d126647bb1d1d8cb1fafcb366b228f0388
 view: timeliness {
   sql_table_name: `@{DATASET_PREFIX}_marts.mart_timeliness` ;;

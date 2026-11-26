@@ -1,4 +1,4 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 # content-sha256: 9b2a6a83136f39d4de2975d25b45d60b9137e425db762a0bef662b208e50f92d
 view: metric_catalog {
   sql_table_name: `@{DATASET_PREFIX}_marts.mart_metric_catalog` ;;

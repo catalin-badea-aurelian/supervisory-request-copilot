@@ -1,0 +1,373 @@
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
+id: dash-scan-2025-10-15-20261126-143248-6849
+title: Supervisory oversight dashboard
+pack_id: payments
+pack_version: 1.3.0
+as_of: '2025-10-15'
+scan_run_id: scan-2025-10-15-20261126-143248-6849
+disclaimer: Synthetic data — fictional entity (Synthetic Payments Bank). Demonstration only.
+caption_source: template
+pages:
+- id: risk_overview
+  title: Risk overview
+  tiles:
+  - id: kpi_chargeback_rate
+    kind: kpi
+    data: metric_value
+    title: Chargeback rate (value), latest month
+    caption: Chargeback rate (value). Figures computed by the oversight team from raw sources. Threshold
+      lines show the pack's amber and red levels.
+    source: mart_ewi_components
+    metric_id: chargeback_rate_value
+    dimensions:
+    - period
+    filters: {}
+    thresholds:
+      direction: higher_is_worse
+      amber: 0.006
+      red: 0.009
+    params:
+      scope: latest_all
+  - id: kpi_fraud_loss
+    kind: kpi
+    data: metric_value
+    title: Fraud loss rate, latest month
+    caption: Fraud loss rate (bps). Figures computed by the oversight team from raw sources. Threshold
+      lines show the pack's amber and red levels.
+    source: mart_ewi_components
+    metric_id: fraud_loss_rate_bps
+    dimensions:
+    - period
+    filters: {}
+    thresholds:
+      direction: higher_is_worse
+      amber: 8.0
+      red: 12.0
+    params:
+      scope: latest_all
+  - id: kpi_refund_rate
+    kind: kpi
+    data: metric_value
+    title: Refund rate, latest month
+    caption: Refund rate (value). Figures computed by the oversight team from raw sources. Threshold lines
+      show the pack's amber and red levels.
+    source: mart_ewi_components
+    metric_id: refund_rate_value
+    dimensions:
+    - period
+    filters: {}
+    thresholds:
+      direction: higher_is_worse
+      amber: 0.04
+      red: 0.06
+    params:
+      scope: latest_all
+  - id: bar_top10
+    kind: bar
+    data: metric_value
+    title: Top-10 merchant concentration by country, latest month
+    caption: Top-10 merchant concentration. Figures computed by the oversight team from raw sources. Threshold
+      lines show the pack's amber and red levels.
+    source: mart_ewi_monthly
+    metric_id: top10_merchant_concentration
+    dimensions:
+    - period
+    - merchant_country
+    filters: {}
+    thresholds:
+      direction: higher_is_worse
+      amber: 0.3
+      red: 0.4
+    params:
+      scope: latest_by_country
+      exclude_country: XX
+  - id: heat_chargeback_rate
+    kind: heatmap
+    data: metric_value
+    title: 'Chargeback rate: country × month'
+    caption: Chargeback rate (value). Figures computed by the oversight team from raw sources. Threshold
+      lines show the pack's amber and red levels.
+    source: mart_ewi_components
+    metric_id: chargeback_rate_value
+    dimensions:
+    - period
+    - merchant_country
+    filters: {}
+    thresholds:
+      direction: higher_is_worse
+      amber: 0.006
+      red: 0.009
+    params:
+      scope: grid
+      exclude_country: XX
+  - id: line_chargeback_trend
+    kind: line
+    data: metric_value
+    title: Chargeback rate by month with thresholds
+    caption: Chargeback rate (value). Figures computed by the oversight team from raw sources. Threshold
+      lines show the pack's amber and red levels.
+    source: mart_ewi_components
+    metric_id: chargeback_rate_value
+    dimensions:
+    - period
+    filters: {}
+    thresholds:
+      direction: higher_is_worse
+      amber: 0.006
+      red: 0.009
+    params:
+      scope: trend_all
+  - id: line_settled_volume
+    kind: line
+    data: metric_value
+    title: Settled volume by month and country
+    caption: Settled volume (EUR). Figures computed by the oversight team from raw sources.
+    source: mart_ewi_components
+    metric_id: settled_volume_eur
+    dimensions:
+    - period
+    - merchant_country
+    filters: {}
+    thresholds: null
+    params:
+      scope: grid
+      exclude_country: XX
+  - id: table_breaches
+    kind: table
+    data: breaches
+    title: Threshold breaches
+    caption: Country-month values at or above the amber threshold; XX is excluded.
+    source: mart_ewi_monthly
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      exclude_country: XX
+- id: data_risk
+  title: Data risk (BCBS 239)
+  tiles:
+  - id: kpi_rec_breaks
+    kind: kpi
+    data: dq_cells
+    title: Open reconciliation breaks
+    caption: Counts of metric × month × country cells from the latest scan.
+    source: mart_dq_status
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      check_ids:
+      - V-REC-01
+      statuses:
+      - FAIL
+  - id: bar_xx_volume
+    kind: bar
+    data: xx_volume
+    title: Unallocated volume (XX)
+    caption: Volume with no country. Shown here, left out of the country RAG.
+    source: mart_ewi_components
+    metric_id: settled_volume_eur
+    dimensions:
+    - period
+    - merchant_country
+    filters: {}
+    thresholds: null
+    params:
+      country: XX
+  - id: kpi_completeness
+    kind: kpi
+    data: dq_cells
+    title: Completeness issues
+    caption: Counts of metric × month × country cells from the latest scan.
+    source: mart_dq_status
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      check_ids:
+      - V-COMP-01
+      - V-COMP-02
+      statuses:
+      - WARN
+      - FAIL
+  - id: kpi_partitions
+    kind: kpi
+    data: timeliness
+    title: Incomplete or late partitions
+    caption: Partitions loaded below the completeness thresholds.
+    source: mart_timeliness
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params: {}
+  - id: kpi_definition
+    kind: kpi
+    data: dq_cells
+    title: Definition conformity failures
+    caption: Counts of metric × month × country cells from the latest scan.
+    source: mart_dq_status
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      check_ids:
+      - V-DEF-01
+      statuses:
+      - FAIL
+  - id: kpi_lineage
+    kind: kpi
+    data: lineage
+    title: Lineage coverage
+    caption: Metrics with an independent path and documented lineage.
+    source: mart_metric_catalog
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params: {}
+  - id: matrix_checks
+    kind: matrix
+    data: dq_cells
+    title: Check status matrix
+    caption: Counts of metric × month × country cells from the latest scan.
+    source: mart_dq_status
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      check_ids: []
+      statuses:
+      - PASS
+      - WARN
+      - FAIL
+      group: check_month
+  - id: bar_principles
+    kind: bar
+    data: principles
+    title: Pass rate by BCBS 239 principle
+    caption: Share of scan cells that passed, by BCBS 239 principle.
+    source: mart_bcbs239_scorecard
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params: {}
+  - id: table_findings
+    kind: table
+    data: dq_cells
+    title: Finding details
+    caption: Counts of metric × month × country cells from the latest scan.
+    source: mart_dq_status
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      check_ids: []
+      statuses:
+      - FAIL
+      group: findings
+- id: request_operations
+  title: Request operations
+  tiles:
+  - id: kpi_count
+    kind: kpi
+    data: requests
+    title: Requests
+    caption: From the run telemetry in spb_ops.
+    source: mart_requests
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      measure: count
+  - id: kpi_on_time_rate
+    kind: kpi
+    data: requests
+    title: Delivered on time
+    caption: From the run telemetry in spb_ops.
+    source: mart_requests
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      measure: on_time_rate
+  - id: kpi_median_duration_hours
+    kind: kpi
+    data: requests
+    title: Median time to delivery (hours)
+    caption: From the run telemetry in spb_ops.
+    source: mart_requests
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      measure: median_duration_hours
+  - id: kpi_total_g2_escalations
+    kind: kpi
+    data: requests
+    title: G2 escalations
+    caption: From the run telemetry in spb_ops.
+    source: mart_requests
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      measure: total_g2_escalations
+  - id: kpi_total_accepted_findings
+    kind: kpi
+    data: requests
+    title: Accepted findings
+    caption: From the run telemetry in spb_ops.
+    source: mart_requests
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      measure: total_accepted_findings
+  - id: kpi_avg_cost_eur
+    kind: kpi
+    data: requests
+    title: Average estimated cost per run (EUR)
+    caption: From the run telemetry in spb_ops.
+    source: mart_requests
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      measure: avg_cost_eur
+  - id: table_requests
+    kind: table
+    data: requests
+    title: Requests
+    caption: From the run telemetry in spb_ops.
+    source: mart_requests
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params:
+      measure: table
+  - id: bar_gates
+    kind: bar
+    data: gates
+    title: Gate decisions
+    caption: Human gate outcomes recorded in the audit logs.
+    source: mart_gate_decisions
+    metric_id: null
+    dimensions: []
+    filters: {}
+    thresholds: null
+    params: {}

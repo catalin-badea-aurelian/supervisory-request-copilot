@@ -1,0 +1,16 @@
+{
+  "key": "dbb7e18d0260e41638b6175efe0b6108b10c96e368f5cd52f56613370d99d937",
+  "model_requested": "claude-sonnet-5-5",
+  "prompt_ref": "intake@1.0.1",
+  "response": {
+    "model": "claude-sonnet-5-5",
+    "stop_reason": "end_turn",
+    "text": "{\"draft\":{\"as_of_date\":\"2025-10-15\",\"assumptions\":[\"Q1-Q2 2025 is read as 2025-01-01 to 2025-06-30, two whole calendar quarters.\",\"Chargeback rate is the value-based variant, chargeback_rate_value, as the requester answered.\",\"Merchant category is mapped to the glossary dimension mcc_group.\",\"The requester has no further constraints, so no exact deadline date is set.\"],\"deadline\":null,\"dimensions\":[\"merchant_country\",\"mcc_group\"],\"filters\":[],\"grain\":\"quarter\",\"metrics\":[\"chargeback_rate_value\"],\"output_format\":\"table\",\"period_end\":\"2025-06-30\",\"period_start\":\"2025-01-01\",\"title\":\"Chargeback rate (value) by country and MCC group, Q1-Q2 2025\"},\"precedent_refs\":[\"SUB:chargeback_rate_value:2025-Q1\"],\"questions\":[],\"reasoning\":\"All required topics (metric variant, attribution, perimeter, as-of, grain, output format, precedent) are answered. The request maps to chargeback_rate_value, quarterly, over 2025-01-01 to 2025-06-30, across all countries. Q1 2025 overlaps an earlier submission, so the figures follow the governed definition and any difference to that submission is to be explained.\",\"undefined_measures\":[],\"undefined_metric\":false}",
+    "usage": {
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 2724,
+      "input_tokens": 5682,
+      "output_tokens": 460
+    }
+  }
+}

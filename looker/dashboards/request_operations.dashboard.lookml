@@ -1,4 +1,4 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 # content-sha256: 27cdfa288c21f5cffc6a9bff0c28d49e7e0ce59db254936b7fa03ea535c4643f
 - dashboard: request_operations
   title: Request operations

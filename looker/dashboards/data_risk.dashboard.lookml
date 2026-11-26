@@ -1,4 +1,4 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 # content-sha256: 20416301f122107291b79c2d247ca651d4e17c3cd704fcaf64029277fd507428
 - dashboard: data_risk
   title: Data risk (BCBS 239)

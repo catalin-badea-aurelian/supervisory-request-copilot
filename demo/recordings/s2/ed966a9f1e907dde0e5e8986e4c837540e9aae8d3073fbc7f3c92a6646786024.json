@@ -5,12 +5,12 @@
   "response": {
     "model": "claude-sonnet-5-5",
     "stop_reason": "end_turn",
-    "text": "{\"items\":[{\"dimensions\":[\"period\",\"merchant_country\"],\"filters\":[],\"metric_id\":\"chargeback_rate_value\",\"non_template\":false,\"rationale\":\"The governed chargeback_rate_value template (v1.1.0) on its preferred source grp_merchant_monthly supports both period and merchant_country and answers the spec directly.\",\"source_path\":\"preferred\"}],\"rationale\":\"The governed template for chargeback_rate_value answers the spec (July-August 2025, by month and merchant country, no filters, as of 2025-10-15) because both requested dimensions are allowed. The definition lists no limitations, but chargebacks are attributed to the original transaction month, so recent months may still change, and merchant country is joined as stored.\"}",
+    "text": "{\"items\":[{\"dimensions\":[\"period\",\"merchant_country\"],\"filters\":[],\"metric_id\":\"chargeback_rate_value\",\"non_template\":false,\"rationale\":\"The governed chargeback_rate_value template (v1.1.0, approved) divides chargeback value by settled transaction value attributed to the original transaction month, and supports the period and merchant_country dimensions requested.\",\"source_path\":\"preferred\"}],\"rationale\":\"The single metric in the spec is answered by its governed template from the preferred source grp_merchant_monthly, with period and merchant_country dimensions, no filters, and the as-of date of 2025-10-15 applied in the governed SQL; the definition lists no limitations, but because chargebacks are attributed to the transaction month, recent months may still be maturing and merchant country is joined as stored.\"}",
     "usage": {
-      "cache_creation_input_tokens": 1126,
-      "cache_read_input_tokens": 0,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 1126,
       "input_tokens": 571,
-      "output_tokens": 244
+      "output_tokens": 269
     }
   }
 }

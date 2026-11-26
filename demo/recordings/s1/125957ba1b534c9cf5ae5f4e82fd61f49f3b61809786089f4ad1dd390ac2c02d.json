@@ -5,12 +5,12 @@
   "response": {
     "model": "claude-sonnet-5-5",
     "stop_reason": "end_turn",
-    "text": "{\"items\":[{\"dimensions\":[\"period\",\"merchant_country\",\"mcc_group\"],\"filters\":[],\"metric_id\":\"chargeback_rate_value\",\"non_template\":false,\"rationale\":\"The governed chargeback_rate_value template (v1.1.0) divides chargeback value by settled transaction value, attributed to the original transaction month, and supports period, merchant_country and mcc_group, so it answers the spec; it has no listed limitations, but rows loaded after the 2025-10-15 as-of date are excluded and merchant country and MCC group are joined as currently stored.\",\"source_path\":\"preferred\"}],\"rationale\":\"One plan item for the single requested metric, using the preferred source grp_merchant_monthly with the spec's dimensions and no filters, compiled from the governed template.\"}",
+    "text": "{\"items\":[{\"dimensions\":[\"period\",\"merchant_country\",\"mcc_group\"],\"filters\":[],\"metric_id\":\"chargeback_rate_value\",\"non_template\":false,\"rationale\":\"The governed chargeback_rate_value template (v1.1.0, approved) divides chargeback value by settled transaction value, attributed to the original transaction month, and allows period, merchant_country and mcc_group, so it answers the spec as of 2025-10-15; the definition lists no limitations, but merchant country and MCC group are joined as stored (not point-in-time), and recent transaction-month cohorts may still be maturing as chargebacks arrive.\",\"source_path\":\"preferred\"}],\"rationale\":\"Single metric in the spec, so one plan item using the preferred source grp_merchant_monthly with the spec's dimensions and no filters.\"}",
     "usage": {
       "cache_creation_input_tokens": 1126,
       "cache_read_input_tokens": 0,
       "input_tokens": 582,
-      "output_tokens": 259
+      "output_tokens": 274
     }
   }
 }

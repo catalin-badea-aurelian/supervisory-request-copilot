@@ -22,6 +22,12 @@ class OpsSink(Protocol):
         """Write rows; returns a short description of where they went."""
         ...
 
+    def replace_where(
+        self, table: str, column: str, value: str, rows: list[dict[str, Any]], request_id: str
+    ) -> str:
+        """Delete the rows with `column = value`, then append `rows` (idempotent per type)."""
+        ...
+
 
 def _check(table: str, rows: list[dict[str, Any]]) -> OpsTable:
     spec = OPS_TABLES[table]
@@ -52,6 +58,13 @@ class LocalSink:
         with p.open("a" if mode == "append" else "w", encoding="utf-8", newline="\n") as fh:
             fh.write(text)
         return str(p)
+
+    def replace_where(
+        self, table: str, column: str, value: str, rows: list[dict[str, Any]], request_id: str
+    ) -> str:
+        _check(table, rows)
+        kept = [r for r in self.read(table) if r.get(column) != value]
+        return self.write(table, kept + rows, "replace", request_id)
 
     def read(self, table: str) -> list[dict[str, Any]]:
         p = self.path(table)
@@ -101,6 +114,30 @@ class BigQuerySink:
         )
         payload = [json.loads(json.dumps(r, default=str)) for r in rows]
         self.client.load_table_from_json(payload, ref, job_config=cfg).result(timeout=300)
+        return ref
+
+    def replace_where(
+        self, table: str, column: str, value: str, rows: list[dict[str, Any]], request_id: str
+    ) -> str:
+        """DML delete of one row type (labelled, byte-limited), then a load job appends."""
+        from google.cloud import bigquery
+
+        from copilot.data.bigquery_clients import job_labels
+
+        spec = _check(table, rows)
+        if column not in spec.column_names:
+            raise ValueError(f"{table}: unknown column {column}")
+        ref = self._ensure(spec)
+        cfg = bigquery.QueryJobConfig(
+            maximum_bytes_billed=self.settings.max_bytes_billed,
+            labels=job_labels("ops-export", request_id),
+            query_parameters=[bigquery.ScalarQueryParameter("v", "STRING", value)],
+        )
+        self.client.query(f"DELETE FROM `{ref}` WHERE {column} = @v", job_config=cfg).result(
+            timeout=300
+        )
+        if rows:
+            self.write(table, rows, "append", request_id)
         return ref
 
 

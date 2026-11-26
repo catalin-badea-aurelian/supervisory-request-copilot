@@ -14,6 +14,7 @@ from pathlib import Path
 import typer
 
 from copilot import __version__
+from copilot.config import REPO_ROOT
 
 app = typer.Typer(name="copilot", help="Supervisory Request Copilot")
 mcp_app = typer.Typer(help="Governed-data MCP server (Level 1 self-service).")
@@ -219,7 +220,11 @@ def ops_export(
     settings = Settings.from_env()
     sink = make_sink(settings, backend)
     for table, rows in export_rows(settings.runs_dir, load_pack()).items():
-        where = sink.write(table, rows, "replace", "ops-export")
+        if table == "ops_check_results":  # shared with scans: replace only the request rows
+            where = sink.replace_where(table, "run_type", "request", rows, "ops-export")
+            table = f"{table} (run_type=request)"
+        else:
+            where = sink.write(table, rows, "replace", "ops-export")
         typer.echo(f"{table}: {len(rows)} rows -> {where}")
 
 
@@ -251,6 +256,82 @@ def lookml() -> None:
 
     for p in write_project(load_pack()):
         typer.echo(f"wrote {p.relative_to(LOOKER_DIR.parent).as_posix()}")
+
+
+dashboard_app = typer.Typer(help="Agent-built oversight dashboard (spec -> HTML, ADR 016).")
+app.add_typer(dashboard_app, name="dashboard")
+gate_app = typer.Typer(help="Human gates outside a request run.")
+app.add_typer(gate_app, name="gate")
+
+
+@dashboard_app.command("build")
+def dashboard_build(
+    run_id: str | None = typer.Argument(None, help="Scan run id (default: the latest scan)."),
+    scan: bool = typer.Option(False, "--scan", help="Use the latest scan run."),
+    backend: str | None = typer.Option(None, help="duckdb or bigquery (default from .env)."),
+    captions: str = typer.Option(
+        "template",
+        help="template (default), or replay / record / live: titles and captions by the gateway.",
+    ),
+) -> None:
+    """Build the spec, render the candidate, reconcile every tile; the result waits for gate GD."""
+    from copilot.config import Settings
+    from copilot.dashboard.workflow import build_dashboard
+    from copilot.packs.loader import load_pack
+
+    if run_id and scan:
+        raise typer.BadParameter("give a scan run id or --scan, not both")
+    settings = Settings.from_env()
+    pack = load_pack()
+    cap = None
+    if captions != "template":
+        from copilot.llm.gateway import CallContext, RunBudget
+        from copilot.workflow import console as cons
+
+        rt = cons.build_runtime(settings, captions, REPO_ROOT / "demo" / "recordings" / "dashboard")
+        cap = (rt.gateway, CallContext(RunBudget(settings.run_token_budget), actor="dashboard"))
+    with _llm_errors():
+        res = build_dashboard(settings, pack, scan_run_id=run_id, backend=backend, captions=cap)
+    rep = res.reconciliation
+    typer.echo(f"{res.dashboard_id}: {res.status}")
+    typer.echo(f"spec: {res.spec_path.relative_to(REPO_ROOT).as_posix()}")
+    typer.echo(f"candidate: {res.html_path}")
+    typer.echo(f"reconciliation: {len(rep['tiles'])} tiles, {rep['mismatch_count']} mismatches")
+    for m in rep["mismatches"][:20]:
+        typer.echo(f"  MISMATCH {m['tile_id']} {m['key']}: shown {m['shown']} vs {m['reference']}")
+    if res.status == "BLOCKED":
+        raise typer.Exit(1)
+    typer.echo(f"next: copilot gate GD {res.dashboard_id} --approve --reason '...'")
+
+
+@gate_app.command("GD")
+def gate_gd(
+    dashboard_id: str,
+    approve: bool = typer.Option(False, "--approve"),
+    reject: bool = typer.Option(False, "--reject"),
+    reason: str = typer.Option(..., "--reason", help="Why (recorded in the audit log)."),
+    actor: str = typer.Option("approver", help="Who decides."),
+) -> None:
+    """Gate GD: approve or reject a built dashboard. Only approval publishes to docs/dashboard/."""
+    from copilot.config import Settings
+    from copilot.dashboard.workflow import GateError, decide_gd
+
+    if approve == reject:
+        raise typer.BadParameter("give exactly one of --approve or --reject")
+    try:
+        meta = decide_gd(
+            Settings.from_env(),
+            dashboard_id,
+            "approve" if approve else "reject",
+            reason,
+            actor=actor,
+        )
+    except GateError as e:
+        typer.secho(f"GD refused: {e}", fg=typer.colors.RED, err=True)
+        raise typer.Exit(1) from None
+    typer.echo(f"{dashboard_id}: {meta['status']}")
+    if approve:
+        typer.echo("published: docs/dashboard/index.html (+ evidence.md, manifest.json)")
 
 
 @app.callback(invoke_without_command=True)

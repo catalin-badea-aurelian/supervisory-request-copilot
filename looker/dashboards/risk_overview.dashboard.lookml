@@ -1,4 +1,4 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 # content-sha256: 3925d73b32978a50acbc84f8990c0537460bd12d9c6c113b4862213642ffeb24
 - dashboard: risk_overview
   title: Risk overview

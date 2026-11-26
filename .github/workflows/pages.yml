@@ -1,0 +1,42 @@
+# Publishes the approved oversight dashboard (docs/dashboard/) as a static site.
+# No credentials and no data access: the figures are baked into the HTML that gate GD approved
+# (copilot gate GD copies it to docs/dashboard/; see docs/adr/016-presentation-layer.md).
+name: Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/dashboard/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that an approved dashboard exists
+        run: test -f docs/dashboard/index.html && test -f docs/dashboard/evidence.md
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/dashboard
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -15,6 +15,7 @@ dependencies = [
     "mcp>=1.2",
     "numpy>=2.4.6",
     "pandas>=3.1.1",
+    "plotly>=6.0",
     "pyarrow>=26.0.1",
     "pydantic>=2.14.4",
     "python-dotenv>=1.2.4",
@@ -47,6 +48,10 @@ dev = [
     "pre-commit>=4.0",
     "poethepoet>=0.31",
 ]
+docs = [
+    "playwright>=1.49",
+    "pillow>=11",
+]
 
 [tool.ruff]
 line-length = 100
@@ -57,6 +62,10 @@ include = ["src/**/*.py", "tests/**/*.py", "scripts/**/*.py", "*.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# HTML and JS strings in the renderer are easier to read unwrapped
+"src/copilot/dashboard/render.py" = ["E501"]
 
 [tool.ruff.lint.flake8-bugbear]
 # Typer declares CLI parameters as call defaults
@@ -129,12 +138,20 @@ cmd = "python -m copilot.cli lookml"
 help = "Generate LookML (views, explores, model, dashboards) from the domain pack into looker/"
 
 [tool.poe.tasks.lookml-publish]
-cmd = "python scripts/_stub.py lookml-publish M8"
-help = "Push looker/ to the Looker project repo (not yet implemented, lands in M8)"
+cmd = "python scripts/looker_required.py lookml-publish"
+help = "Push looker/ to the Looker project repo (requires a Looker instance; optional, ADR 016)"
 
 [tool.poe.tasks.lookml-check]
-cmd = "python scripts/_stub.py lookml-check M8"
-help = "Validate the LookML project and run the dashboard consistency test (not yet implemented, lands in M8)"
+cmd = "python scripts/looker_required.py lookml-check"
+help = "Validate the LookML project and run the consistency test through Looker (requires a Looker instance; optional, ADR 016)"
+
+[tool.poe.tasks.docs-media]
+cmd = "python scripts/docs_media.py"
+help = "Screenshots (docs/img/*.png) and demo.gif from the approved docs/dashboard/ (needs: uv sync --group docs; playwright install chromium)"
+
+[tool.poe.tasks.dashboard]
+cmd = "python -m copilot.cli dashboard build"
+help = "Build the oversight dashboard: spec, candidate HTML and tile reconciliation (--scan for the latest scan); then copilot gate GD"
 
 [tool.poe.tasks.verify-iam]
 cmd = "python scripts/verify_iam.py"

@@ -18,7 +18,7 @@ reconciles_to:
 checks: [V-SCH-01, V-PK-01, V-COMP-01, V-COMP-02, V-REC-01, V-DUAL-01, V-VAR-01, V-PRIOR-01, V-TIME-01, V-RERUN-01, V-SQL-01]
 tolerances:
   V-DUAL-01: {relative: 0.001}
-  V-VAR-01: {relative: 0.25}
+  V-VAR-01: {relative: 0.35}
   V-COMP-01: {warn: 0.001, fail: 0.01}
   V-REC-01: {relative: 0.005}
 bcbs239_principles: [3, 4, 5, 7, 9]

@@ -1,4 +1,4 @@
--- GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+-- GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 -- view: mart_bcbs239_scorecard
 WITH latest AS (
   SELECT * FROM `${project}.${prefix}_ops.ops_check_results`

@@ -463,6 +463,9 @@ def view_requests(pack: DomainPack) -> str:
         dimension("est_cost_eur", "number", "${TABLE}.est_cost_eur"),
         dimension("duration_s", "number", "${TABLE}.duration_s"),
         dimension("llm_replayed", "yesno", "${TABLE}.llm_replayed"),
+        dimension("checks_pass", "number", "${TABLE}.checks_pass"),
+        dimension("checks_warn", "number", "${TABLE}.checks_warn"),
+        dimension("checks_fail", "number", "${TABLE}.checks_fail"),
         measure("count", "count", None),
         measure(
             "on_time_rate",
@@ -489,6 +492,8 @@ def view_gate_decisions(pack: DomainPack) -> str:
     blocks = [
         dimension("decision_id", "string", "${TABLE}.decision_id", pk=True),
         dimension("request_id", "string", "${TABLE}.request_id"),
+        dimension("request_title", "string", "${TABLE}.request_title"),
+        dimension("request_status", "string", "${TABLE}.request_status"),
         dimension("gate", "string", "${TABLE}.gate"),
         dimension("decision", "string", "${TABLE}.decision"),
         dimension("actor", "string", "${TABLE}.actor"),

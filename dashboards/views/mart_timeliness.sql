@@ -1,4 +1,4 @@
--- GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+-- GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 -- view: mart_timeliness
 WITH log AS (
   SELECT table_name, PARSE_DATE('%Y-%m', `partition`) AS partition_month,
