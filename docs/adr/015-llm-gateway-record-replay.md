@@ -10,9 +10,18 @@ Four constraints shape how they are made:
 
 1. **Cost and repeatability.** `make demo` must run on a clean machine without an API key, and
    tests and CI must never call the API.
-2. **Determinism.** The architecture asked for "temperature 0" for extraction. On the current
-   models (`claude-sonnet-5-5`, `claude-haiku-5-5`) a non-default `temperature`, `top_p` or
-   `top_k` is rejected with HTTP 400, so it is not available as a control.
+2. **Determinism.** The architecture asked for "temperature 0" for extraction, but
+   `temperature` is not available as a control:
+   - **The docs.** [API versions](https://platform.claude.com/docs/en/api/versioning) says that
+     in API version 2026-10-21 "the `temperature`, `top_p`, and `top_k` request parameters are
+     removed. A request that sends any of them returns a 400 error on every model".
+     [Thinking](https://platform.claude.com/docs/en/build-with-claude/thinking) adds that on
+     Sonnet 5.5 and Haiku 5.5, non-default values return a 400 on earlier API versions too.
+   - **The SDK.** `anthropic` 2.14 (our lockfile) no longer has the keyword:
+     `Messages.create() got an unexpected keyword argument 'temperature'`.
+   - **The live API.** Sending it anyway through `extra_body` on 2026-11-26 returned the same
+     response from both models:
+     `400 invalid_request_error: temperature: Extra inputs are not permitted`.
 3. **Structured output.** Forced `tool_choice` returns a 400 on Sonnet 5.5, so it cannot be
    used to force a schema either.
 4. **Governance.** Model ids come only from configuration, and the audit trail must show which
@@ -46,8 +55,11 @@ All calls go through `copilot.llm.gateway.Gateway`. Agents never import the SDK.
   - input, output and cache tokens
   - cost and the pricing status
 
-  Prices are in `config/llm_pricing.yaml`. They are marked `to_verify` until they are checked
-  against the official pricing page, and the date of that check is recorded there.
+  Prices are in `config/llm_pricing.yaml`. They were verified against the
+  [official pricing page](https://platform.claude.com/docs/en/about-claude/pricing) on
+  2026-11-26, the date recorded there with `status: verified`. The same day,
+  `copilot llm check-models` confirmed that both configured ids exist. A price change means
+  editing the file and the date.
 - **Modes** (`COPILOT_LLM_MODE`, or `--live` / `--record` on the CLI):
   - `replay` (default) answers from `demo/recordings/<scenario>/<key>.json`. The key is the
     SHA-256 of the canonical request: model, prompt id@version, system prompt, messages, schema,

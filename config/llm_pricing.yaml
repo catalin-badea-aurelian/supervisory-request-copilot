@@ -1,11 +1,11 @@
 # LLM prices in USD per million tokens, used for cost accounting (ops_runs.est_cost_eur).
 #
-# STATUS: to verify. These figures come from the model table bundled with the Claude API
-# skill (cached 2026-11-03); the cache-read/-write rates for Haiku 5.5 are derived (0.1x and
-# 1.25x of input). They are confirmed against the official pricing page during
-# `copilot llm check-models`, which records the date below.
-status: to_verify
-verified_on: null
+# STATUS: verified against the official pricing page on 2026-11-26 (during
+# `copilot llm check-models`). cache_write is the 5-minute cache write price.
+# Claude Haiku 5.5 prices are those for prompts up to 100,000 tokens; prompts over that pay
+# higher prices ($0.50 input / $2.50 output), which no copilot prompt reaches.
+status: verified
+verified_on: 2026-11-26
 source: https://platform.claude.com/docs/en/about-claude/pricing
 usd_per_mtok:
   claude-sonnet-5-5:
