@@ -149,6 +149,10 @@ help = "Validate the LookML project and run the consistency test through Looker 
 cmd = "python scripts/docs_media.py"
 help = "Screenshots (docs/img/*.png) and demo.gif from the approved docs/dashboard/ (needs: uv sync --group docs; playwright install chromium)"
 
+[tool.poe.tasks.flow-media]
+cmd = "python scripts/flow_animation.py build"
+help = "Regenerate docs/img/flow.gif, docs/walkthrough/flow.mp4 and flow.webm, and the step timings in docs/walkthrough/index.html (needs: uv sync --group docs, ffmpeg, Inter and DejaVu Sans Mono fonts; see --font-dir)"
+
 [tool.poe.tasks.dashboard]
 cmd = "python -m copilot.cli dashboard build"
 help = "Build the oversight dashboard: spec, candidate HTML and tile reconciliation (--scan for the latest scan); then copilot gate GD"
