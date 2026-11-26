@@ -1,4 +1,4 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 # content-sha256: f5d38e170fd98dfda2edd21127464de6d0ca3f5d0ef10c8b4ea19c70fdbbd28f
 view: ewi_components {
   sql_table_name: `@{DATASET_PREFIX}_marts.mart_ewi_components` ;;

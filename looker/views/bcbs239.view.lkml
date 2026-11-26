@@ -1,4 +1,4 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 # content-sha256: f7baaed3009e64b741da8a12a25d8a7f648d2016f3ade020c22b01d8e1d2d074
 view: bcbs239 {
   sql_table_name: `@{DATASET_PREFIX}_marts.mart_bcbs239_scorecard` ;;

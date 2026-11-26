@@ -1,5 +1,5 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
-# content-sha256: a06bbad6bed5b5aacd41a89c5180ac491aea8ec0cf6eb4709d98e8d88e093d47
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
+# content-sha256: 649bd23325abf024e218c5862ed3b11ffbfeb17011088afcb90209600fd37548
 view: requests {
   sql_table_name: `@{DATASET_PREFIX}_marts.mart_requests` ;;
   dimension: request_id {
@@ -63,6 +63,21 @@ view: requests {
   dimension: llm_replayed {
     type: yesno
     sql: ${TABLE}.llm_replayed ;;
+  }
+
+  dimension: checks_pass {
+    type: number
+    sql: ${TABLE}.checks_pass ;;
+  }
+
+  dimension: checks_warn {
+    type: number
+    sql: ${TABLE}.checks_warn ;;
+  }
+
+  dimension: checks_fail {
+    type: number
+    sql: ${TABLE}.checks_fail ;;
   }
 
   measure: count {

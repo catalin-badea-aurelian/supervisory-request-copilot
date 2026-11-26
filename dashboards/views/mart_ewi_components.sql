@@ -1,4 +1,4 @@
--- GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+-- GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 -- view: mart_ewi_components
 SELECT period_month, merchant_country, mcc_group,
   COALESCE(SUM(chargeback_amount_eur), 0) AS chargeback_amount_eur,

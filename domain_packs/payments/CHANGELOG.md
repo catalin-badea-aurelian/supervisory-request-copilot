@@ -1,5 +1,23 @@
 # Domain pack `payments` — changelog
 
+## 1.3.0 — variance check tuned to the data's real noise
+
+The variance check V-VAR-01 (WARN only) warned in almost every month, which buried the planted
+and the real signals. Diagnosis on the default dataset, per cause:
+
+- `chargeback_rate_count`: a per-mille rate over single- and low-double-digit monthly chargeback
+  counts (BE, IE, LU: 1 to 20 a month). Sampling noise alone is 1/sqrt(n), so 25-70 % month-on-month
+  moves are normal and one reached 11x. A relative threshold cannot separate signal from noise
+  here, so the check is removed from this metric. The same events are watched by
+  `chargeback_rate_value` and `chargeback_amount_eur`, which stay in V-VAR-01.
+- `settled_volume_eur`, `transaction_count`, `chargeback_amount_eur`: the December peak and
+  January fall move every country by 25-30 % (seasonality, not a defect). Threshold 0.25 -> 0.35.
+  Aug ES (+88-98 %) and Sep (-36 to -94 %) are still flagged.
+- `refund_rate_value`: moves of up to 48 % on small monthly refund counts. Threshold 0.25 -> 0.60.
+- Unchanged at 0.25: `chargeback_rate_value` (flags IT Jun/Jul, the R1 risk signal, and Sep),
+  `fraud_loss_rate_bps`, `avg_ticket_eur`, `active_merchants`, `top10_merchant_concentration`.
+- No metric definition changes; metric versions are unchanged. See ADR 016.
+
 ## 1.2.0 — checker-only sources
 
 - Sources may declare `checker_only: true`: readable by the validation engine only, never by

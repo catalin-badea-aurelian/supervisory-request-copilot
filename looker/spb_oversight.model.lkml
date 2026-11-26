@@ -1,4 +1,4 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 # content-sha256: f2467529652cb7071a25477a2c7d9b9dda19553219f8bec18c8ef95afc3d9872
 connection: "spb_bigquery"
 

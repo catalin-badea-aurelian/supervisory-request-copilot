@@ -1,4 +1,4 @@
-# GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+# GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 # content-sha256: d1c45b34e2183f5b4f5ac2d6af715555818a93019f3dd2ce227b37065aa6067d
 view: dq_status {
   sql_table_name: `@{DATASET_PREFIX}_marts.mart_dq_status` ;;

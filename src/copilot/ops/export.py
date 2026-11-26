@@ -2,8 +2,9 @@
 
 The source is the run folders written by the workflow (manifest and audit log, M4) and the
 domain pack. The export rebuilds `ops_runs`, `ops_gate_decisions` and `ops_metric_catalog`
-in full each time (replace), so it is idempotent. Scan results are appended by `copilot dq
-scan` and are not touched here.
+in full each time (replace), and the `run_type='request'` rows of `ops_check_results` (delete
+those, then append), so it is idempotent. Scan rows (`run_type='scan'`) are appended by
+`copilot dq scan` and are never touched here.
 """
 
 from __future__ import annotations
@@ -97,6 +98,57 @@ def gate_rows(run_dir: Path) -> list[dict[str, Any]]:
     ]
 
 
+def request_check_rows(run_dir: Path, pack: DomainPack, recorded_at: str) -> list[dict[str, Any]]:
+    """One row per check result of a request run (`run_type='request'`).
+
+    A PASS or a result without slices is one row with no month or country; a result with
+    affected slices gets one row per slice, carrying the slice's own status. `as_of` is the
+    request's as-of date, so the table's partitioning works for both run types.
+    """
+    m = json.loads((run_dir / "manifest.json").read_text("utf-8"))
+    as_of = (m.get("spec") or {}).get("as_of_date") or pack.pack.default_as_of.isoformat()
+    rid = m["request_id"]
+    rows: list[dict[str, Any]] = []
+    for e in _events(run_dir):
+        if e["event_type"] != "check_result" or not e.get("payload_ref"):
+            continue
+        c = json.loads((run_dir / e["payload_ref"]).read_text("utf-8"))
+        metric = pack.metrics.get(c["metric_id"])
+        slices = c.get("affected_slices") or [{}]
+        for s in slices:
+            status = s.get("status", c["status"])
+            period = s.get("period")
+            rows.append(
+                {
+                    "run_id": rid,
+                    "run_type": "request",
+                    "as_of": as_of,
+                    "pack_version": m.get("pack_version"),
+                    "metric_id": c["metric_id"],
+                    "metric_version": metric.version if metric else None,
+                    "check_id": c["check_id"],
+                    "check_name": c.get("check_name"),
+                    "principle_refs": list(c.get("principle_refs") or []),
+                    "status": status,
+                    "measured": (
+                        json.dumps(c.get("measured"), sort_keys=True, ensure_ascii=False)
+                        if status != "PASS"
+                        else None
+                    ),
+                    "threshold": (
+                        json.dumps(c.get("threshold"), sort_keys=True, ensure_ascii=False)
+                        if status != "PASS"
+                        else None
+                    ),
+                    "period_month": f"{period[:7]}-01" if period else None,
+                    "merchant_country": s.get("merchant_country"),
+                    "accepted_ref": c.get("accepted_ref"),
+                    "recorded_at": recorded_at,
+                }
+            )
+    return rows
+
+
 def catalog_rows(pack: DomainPack) -> list[dict[str, Any]]:
     """Governance indicators per metric version.
 
@@ -150,5 +202,6 @@ def export_rows(runs_dir: Path, pack: DomainPack) -> dict[str, list[dict[str, An
     return {
         "ops_runs": [run_row(d, rate, exported_at) for d in dirs],
         "ops_gate_decisions": [g for d in dirs for g in gate_rows(d)],
+        "ops_check_results": [r for d in dirs for r in request_check_rows(d, pack, exported_at)],
         "ops_metric_catalog": catalog_rows(pack),
     }

@@ -1,4 +1,4 @@
--- GENERATED FROM domain pack payments@1.2.0 — DO NOT EDIT
+-- GENERATED FROM domain pack payments@1.3.0 — DO NOT EDIT
 -- view: mart_metric_catalog
 SELECT metric_id, version, name, owner, status, unit, has_independent_path,
   lineage_documented, reconciles_to, changed_at, pack_version

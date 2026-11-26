@@ -115,6 +115,7 @@ def test_ops_views_on_scan_rows(scan, small_default, pack, tmp_path):
 
 
 def _fake_run(runs_dir, rid, status="DELIVERED", deadline=None):
+    events_extra: list[dict] = []
     d = runs_dir / rid
     (d / "payloads").mkdir(parents=True)
     gates = [
@@ -152,7 +153,11 @@ def _fake_run(runs_dir, rid, status="DELIVERED", deadline=None):
         "pack_version": "1.2.0",
         "backend": "duckdb",
         "source_path": "independent",
-        "spec": {"title": "Rückfrage → Chargeback rate", "deadline": deadline},
+        "spec": {
+            "title": "Rückfrage → Chargeback rate",
+            "deadline": deadline,
+            "as_of_date": "2025-10-15",
+        },
         "llm": {"calls": 2, "cost_usd": 0.01, "tokens_in": 100, "tokens_out": 10},
         "gate_decisions": gates,
         "accepted_findings": [{"check_id": "V-PK-01"}],
@@ -160,6 +165,50 @@ def _fake_run(runs_dir, rid, status="DELIVERED", deadline=None):
     }
     (d / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False), "utf-8")
     (d / "payloads" / "0001-llm_call.json").write_text(json.dumps({"replayed": True}), "utf-8")
+    checks = [
+        {
+            "check_id": "V-SCH-01",
+            "check_name": "Schema",
+            "metric_id": "chargeback_rate_value",
+            "status": "PASS",
+            "principle_refs": [3],
+            "measured": {},
+            "threshold": {},
+            "affected_slices": [],
+            "accepted_ref": None,
+        },
+        {
+            "check_id": "V-VAR-01",
+            "check_name": "Variance",
+            "metric_id": "chargeback_rate_value",
+            "status": "WARN",
+            "principle_refs": [7],
+            "measured": {"max": 3.1},
+            "threshold": {"r": 0.25},
+            "affected_slices": [
+                {"period": "2025-06-01", "merchant_country": "IT", "status": "WARN"},
+                {"period": "2025-07-01", "merchant_country": "IT", "status": "WARN"},
+            ],
+            "accepted_ref": None,
+        },
+        {
+            "check_id": "V-REC-01",
+            "check_name": "Reconciliation",
+            "metric_id": "settled_volume_eur",
+            "status": "FAIL",
+            "principle_refs": [3, 4],
+            "measured": {"gap": 1},
+            "threshold": {},
+            "affected_slices": [],
+            "accepted_ref": "F-1",
+        },
+    ]
+    for i, c in enumerate(checks, start=2):
+        ref = f"payloads/{i:04d}-check_result.json"
+        (d / ref).write_text(json.dumps(c), "utf-8")
+        events_extra.append(
+            {"ts": "2026-01-05T10:20:00+00:00", "event_type": "check_result", "payload_ref": ref}
+        )
     events = [
         {"ts": "2026-01-05T09:59:00+00:00", "event_type": "request_received"},
         {
@@ -167,6 +216,7 @@ def _fake_run(runs_dir, rid, status="DELIVERED", deadline=None):
             "event_type": "llm_call",
             "payload_ref": "payloads/0001-llm_call.json",
         },
+        *events_extra,
         {"ts": "2026-01-05T11:00:00+00:00", "event_type": "status_changed"},
     ]
     (d / "audit.jsonl").write_text("".join(json.dumps(e) + "\n" for e in events), "utf-8")
@@ -219,3 +269,47 @@ def test_local_sink_append_and_replace(tmp_path):
     assert "Rückfrage" in sink.path("ops_metric_catalog").read_text("utf-8")
     with pytest.raises(ValueError, match="unknown columns"):
         sink.write("ops_metric_catalog", [{"bogus": 1}], "append", "x")
+
+
+def test_request_check_rows_and_request_marts(tmp_path, pack, small_default):
+    _fake_run(tmp_path, "req-1", deadline="2026-01-06")
+    _fake_run(tmp_path, "req-2", status="REJECTED")
+    rows = export_rows(tmp_path, pack)
+    checks = rows["ops_check_results"]
+    assert {r["run_type"] for r in checks} == {"request"}
+    assert {r["as_of"] for r in checks} == {"2025-10-15"}
+    r1 = [r for r in checks if r["run_id"] == "req-1"]
+    assert len(r1) == 4  # PASS, two WARN slices, one FAIL without slices
+    ok = next(r for r in r1 if r["check_id"] == "V-SCH-01")
+    assert ok["period_month"] is None and ok["measured"] is None
+    warn = sorted(
+        (r["period_month"], r["merchant_country"]) for r in r1 if r["check_id"] == "V-VAR-01"
+    )
+    assert warn == [("2025-06-01", "IT"), ("2025-07-01", "IT")]
+    fail = next(r for r in r1 if r["status"] == "FAIL")
+    assert fail["accepted_ref"] == "F-1" and fail["principle_refs"] == [3, 4]
+    assert json.loads(fail["measured"]) == {"gap": 1}
+
+    con = connect(small_default.parquet_dir, rows)
+    req = query_view(con, pack, "mart_requests").set_index("request_id")
+    for rid in ("req-1", "req-2"):  # slices of one check count once
+        assert req.loc[rid, ["checks_pass", "checks_warn", "checks_fail"]].tolist() == [1, 1, 1]
+    gd = query_view(con, pack, "mart_gate_decisions")
+    assert set(gd["request_status"]) == {"DELIVERED", "REJECTED"}
+    assert set(gd["request_title"]) == {"Rückfrage → Chargeback rate"}
+    # request rows never leak into the scan-based data-risk views
+    assert query_view(con, pack, "mart_dq_status").empty
+
+
+def test_replace_where_keeps_scan_rows_and_is_idempotent(tmp_path):
+    sink = LocalSink(tmp_path)
+    base = {"as_of": "2025-10-15", "check_id": "c", "status": "PASS", "run_id": "x"}
+    scan = [{**base, "run_type": "scan", "run_id": "scan-1"}]
+    sink.write("ops_check_results", scan, "append", "scan-1")
+    req = [{**base, "run_type": "request", "run_id": "req-1"}]
+    for _ in range(2):
+        sink.replace_where("ops_check_results", "run_type", "request", req, "ops-export")
+    got = sink.read("ops_check_results")
+    assert sorted(r["run_type"] for r in got) == ["request", "scan"]
+    sink.replace_where("ops_check_results", "run_type", "request", [], "ops-export")
+    assert [r["run_type"] for r in sink.read("ops_check_results")] == ["scan"]

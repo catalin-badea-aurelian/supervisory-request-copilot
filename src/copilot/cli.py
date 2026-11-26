@@ -219,7 +219,11 @@ def ops_export(
     settings = Settings.from_env()
     sink = make_sink(settings, backend)
     for table, rows in export_rows(settings.runs_dir, load_pack()).items():
-        where = sink.write(table, rows, "replace", "ops-export")
+        if table == "ops_check_results":  # shared with scans: replace only the request rows
+            where = sink.replace_where(table, "run_type", "request", rows, "ops-export")
+            table = f"{table} (run_type=request)"
+        else:
+            where = sink.write(table, rows, "replace", "ops-export")
         typer.echo(f"{table}: {len(rows)} rows -> {where}")
 
 
