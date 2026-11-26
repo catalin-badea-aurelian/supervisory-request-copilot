@@ -432,7 +432,7 @@ def build_graph(rt: Runtime, checkpointer: Any = None) -> Any:
         for c in fails:
             key = f"{c.metric_id}:{c.check_id}"
             try:
-                explanations[key] = explain_failure(rt.gateway, c, ctx).model_dump()
+                explanations[key] = explain_failure(rt.gateway, c, report, ctx).model_dump()
             except BudgetExceeded as e:
                 return {
                     **update,
@@ -443,8 +443,9 @@ def build_graph(rt: Runtime, checkpointer: Any = None) -> Any:
                 }
             except LlmEscalation:
                 explanations[key] = {
-                    "summary": "No explanation available.",
-                    "likely_cause": "",
+                    "summary": "Explanation unavailable: the model's text failed the code "
+                    "checks (numbers or cause wording) twice; see the check output.",
+                    "likely_cause": "cause not established",
                     "impact": "",
                 }
         return {

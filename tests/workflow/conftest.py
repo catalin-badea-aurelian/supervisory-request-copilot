@@ -70,7 +70,9 @@ def script_for(draft: SpecDraft, dims: list[str]) -> dict[str, list[Any]]:
         "analyst": [
             QueryPlan(items=[QueryPlanItem(metric_id="chargeback_rate_value", dimensions=dims)])
         ],
-        "failure_explainer": [Explanation(summary="s", likely_cause="c", impact="i")],
+        "failure_explainer": [
+            Explanation(summary="s", likely_cause="cause not established", impact="i")
+        ],
     }
 
 
