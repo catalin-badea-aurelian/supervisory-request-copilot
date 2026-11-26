@@ -82,7 +82,7 @@ def test_search_catalog_finds_metrics_and_tables(tools) -> None:
 def test_describe_table_is_limited_to_metric_sources(tools) -> None:
     out = tools.describe_table("src_merchants")
     assert {"merchant_id", "merchant_country"} <= {c["name"] for c in out["columns"]}
-    for table in ("ledger_totals", "ewi_thresholds", "prior_submissions", "nope"):
+    for table in ("ledger_control_totals", "ewi_thresholds", "prior_submissions", "nope"):
         with pytest.raises(ToolInputError):
             tools.describe_table(table)
 

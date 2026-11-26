@@ -102,7 +102,7 @@ def test_metric_profile_excludes_control_tables(pack, small_default) -> None:
     s = open_session(_settings(small_default.parquet_dir), pack, request_id="t", component="a")
     try:
         with pytest.raises(PolicyViolation, match="table_not_allowed"):
-            s.backend.query("SELECT * FROM ledger_totals")
+            s.backend.query("SELECT * FROM ledger_control_totals")
     finally:
         s.close()
 
