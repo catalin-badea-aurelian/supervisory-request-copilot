@@ -35,7 +35,11 @@ def run_config_path(settings: Settings, request_id: str) -> Path:
 def save_run_config(settings: Settings, request_id: str, cfg: dict[str, Any]) -> None:
     path = run_config_path(settings, request_id)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(cfg, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(cfg, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def load_run_config(settings: Settings, request_id: str) -> dict[str, Any]:

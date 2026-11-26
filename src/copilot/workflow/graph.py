@@ -326,7 +326,7 @@ def build_graph(rt: Runtime, checkpointer: Any = None) -> Any:
         decisions = _log_decision(rt, state, d)
         if d.decision == "approve":
             run_dir = rt.run_dir(state["request_id"])
-            (run_dir / "spec.json").write_text(canonical_json(spec), encoding="utf-8")
+            (run_dir / "spec.json").write_text(canonical_json(spec), encoding="utf-8", newline="\n")
             return {"decisions": decisions, "next": "analyst"}
         if d.decision == "request_changes":
             return {

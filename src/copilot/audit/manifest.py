@@ -40,7 +40,8 @@ def write_manifest(run_dir: Path, manifest: RunManifest) -> Path:
     path = run_dir / "manifest.json"
     run_dir.mkdir(parents=True, exist_ok=True)
     path.write_text(
-        json.dumps(manifest.model_dump(mode="json"), indent=2, sort_keys=True) + "\n",
+        json.dumps(manifest.model_dump(mode="json"), indent=2, sort_keys=True, ensure_ascii=False)
+        + "\n",
         encoding="utf-8",
         newline="\n",
     )

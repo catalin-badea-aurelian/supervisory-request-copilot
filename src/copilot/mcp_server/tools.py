@@ -71,7 +71,7 @@ class GovernedTools:
             **canonical_value(outcome),
         }
         with self._log.open("a", encoding="utf-8", newline="\n") as fh:
-            fh.write(json.dumps(event, sort_keys=True) + "\n")
+            fh.write(json.dumps(event, sort_keys=True, ensure_ascii=False) + "\n")
 
     # ---- catalogue ------------------------------------------------------------------------
     def list_metrics(self) -> list[dict[str, Any]]:
