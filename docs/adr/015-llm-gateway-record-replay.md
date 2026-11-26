@@ -37,7 +37,13 @@ All calls go through `copilot.llm.gateway.Gateway`. Agents never import the SDK.
 - **Output.** Every output is a Pydantic model sent as `output_config.format`, a JSON schema
   produced by the SDK's `transform_schema`. If validation fails, the model gets one retry
   with the error, then the call escalates (`LlmEscalation`) and the workflow routes it to the
-  next human gate. Nothing is coerced silently.
+  next human gate. Nothing is coerced silently. Every field of an output schema is required,
+  so the model cannot leave fields out and pack everything into one.
+- **Code checks on content.** `Gateway.call(..., validate=fn)` runs a code check on the parsed
+  output. A failed check is handled like a schema error: one retry with the reason, then
+  escalation. The failure explainer uses it for the number guard (`copilot.guards.numbers`:
+  every number must come from the input) and for the cause wording. The M5 narrative writer
+  reuses the same guard.
 - **Depth.** Depth is set with `output_config.effort`, per prompt (`low` for plans and
   explanations, `medium` for intake), instead of temperature. No sampling parameters are
   sent.
@@ -58,13 +64,15 @@ All calls go through `copilot.llm.gateway.Gateway`. Agents never import the SDK.
   Prices are in `config/llm_pricing.yaml`. They were verified against the
   [official pricing page](https://platform.claude.com/docs/en/about-claude/pricing) on
   2026-11-26, the date recorded there with `status: verified`. The same day,
-  `copilot llm check-models` confirmed that both configured ids exist. A price change means
-  editing the file and the date.
+  `copilot llm check-models` confirmed that both configured ids exist (checked again live, and
+  the prices against the page again, when M4 closed). A price change means editing the file
+  and the date.
 - **Modes** (`COPILOT_LLM_MODE`, or `--live` / `--record` on the CLI):
   - `replay` (default) answers from `demo/recordings/<scenario>/<key>.json`. The key is the
     SHA-256 of the canonical request: model, prompt id@version, system prompt, messages, schema,
-    effort and max_tokens. A missing recording is an error that names `--record`; it never falls
-    back to a live call.
+    effort and max_tokens. A missing recording is an error that names the prompt id@version and
+    `--record`; it never falls back to a live call. The CLI prints the message and exits with
+    code 2.
   - `record` calls the API once and stores the response text, stop reason, served model and
     usage. It stores no headers, keys or request ids.
   - `live` calls the API without storing anything.
@@ -83,6 +91,14 @@ All calls go through `copilot.llm.gateway.Gateway`. Agents never import the SDK.
 - Changing a prompt, a model id or the glossary invalidates the affected recordings, and replay
   fails loudly until they are re-recorded. That is deliberate: a recording proves which prompt
   version produced which answer.
+- **Prompt lock.** `tests/fixtures/prompt_lock.yaml` pins the SHA-256 of each prompt body per
+  `id@version`. A body edited without a version bump fails the tests before replay does, and
+  a test fails if any committed recording was made with an older prompt version. Re-recording
+  one scenario (for example S2 for `failure_explainer@1.1.0`) leaves the others byte for byte
+  unchanged.
+- Recordings, the audit log, payloads, manifests and the delivery file are UTF-8 with the
+  original characters and LF line endings. Only console output replaces characters that a
+  legacy Windows console cannot print.
 - Replay reproduces the decisions the models made, not fresh model behaviour. Behaviour
   against the live models is measured by `make eval` (M7). Reruns prove the numbers, not the
   prose (ADR 010).

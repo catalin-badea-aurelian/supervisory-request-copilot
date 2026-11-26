@@ -402,7 +402,7 @@ Total is about 5.5 minutes; drop S3 or the evals step if time is short.
 ## 13. Risks and limitations
 
 - **Synthetic data simplifies reality:** schemas, volumes and defects are cleaner than in production.
-- **LLM variability:** mitigated by schemas, temperature 0 for extraction, gates and evals, but not eliminated.
+- **LLM variability:** mitigated by structured outputs, a low effort setting per prompt, code checks on every output (including the number guard), gates, recorded responses for the demo and evals, but not eliminated. Current models reject sampling parameters, so there is no "temperature 0" (ADR 015).
 - **RAG over principles gives guidance, not interpretation:** the reviewer supports a human reviewer and is not a compliance opinion.
 - **Not a validated model:** in a real institution this would sit in the model inventory and go through independent validation.
 - **Single-user demo:** segregation of duties is represented by roles in the audit log, not enforced by identity management.

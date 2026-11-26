@@ -222,14 +222,18 @@ class RunState(TypedDict):
 | Analyst | main | metric definitions (definition view); code compiles and runs the plan | `QueryPlan` → `AnalysisResult` built by code | See thresholds or the defect manifest; write data |
 | Metric proposer | main | `search_catalog`, `describe_table`, `sample_rows` (≤ 20 rows) | `MetricProposal` | Write to the domain pack (only the GD gate does) |
 | Reviewer | main | `retrieve_bcbs239` | `ReviewReport` | Change figures or check statuses; cite unretrieved text |
-| Narrative writer | fast | none | Markdown with placeholders | Emit literal numbers (rejected by a regex guard) |
-| Failure explainer | fast | none (reads check output only) | short text | Change a check status |
+| Narrative writer | fast | none | Markdown with placeholders | Emit literal numbers (rejected by the shared number guard, `copilot.guards.numbers`) |
+| Failure explainer | fast | none (reads the failed check, figures derived by code, and related findings on the same slice) | `Explanation` (summary, likely cause, impact) | Change a check status; state a number the input did not supply; name a cause no related finding supports |
 
 Common rules:
 
 - **No sampling parameters.** Current models reject a non-default `temperature`, `top_p` or `top_k` with HTTP 400. Determinism comes from structured outputs, a low `output_config.effort` per prompt, routing decided by code, and record/replay (ADR 015).
 - **Single structured calls.** In M4 each agent makes one structured call, and code assembles the context it needs. The "allowed tools" above are therefore what code puts in that context. There is no tool loop: the glossary is small enough to send whole, and policy is enforced in code either way.
-- **Code checks every output.** Intake: metrics exist and are approved; dimensions and filter values are allowed; the period aligns to the grain and lies inside the data range; the as-of date and perimeter appear in the request text or in an answer on that topic; overlaps with earlier submissions are raised as a precedent question. Analyst: the plan must match the confirmed spec exactly, and `non_template=true` is rejected and escalated in M4.
+- **Code checks every output.** Intake: metrics exist and are approved; dimensions and filter values are allowed; the period aligns to the grain and lies inside the data range; the as-of date and perimeter appear in the request text or in an answer on that topic; overlaps with earlier submissions are raised as a precedent question. Analyst: the plan must match the confirmed spec exactly, and `non_template=true` is rejected and escalated in M4. Failure explainer (prompt 1.1.0):
+  - **Input built by code.** Code computes observed, expected and difference per reconciliation line, the ratio (`2.00×`, or `n/a` when expected is 0), each slice's signed share of its total gap, and percentage forms. It also adds `related_findings`: other FAIL/WARN checks of the same metric on exactly the same slice (period and dimension values).
+  - **Number guard.** Every number in the text must appear in that input. Separators, trailing zeros, sign and `×`/`x`/"times" are normalised; a `%` or a ratio is allowed only where the input has that form; check ids, table names and periods are not numbers.
+  - **Cause wording.** `likely_cause` is either "cause not established" or starts "likely cause, supported by <check id>", citing related findings only.
+  - **On failure.** A failure of either check gets the usual single retry (through the gateway's `validate` hook), then the explanation is marked unavailable. The check statuses are unaffected.
 - **Typed questions.** Questions carry a `topic` (`metric_variant`, `attribution`, `perimeter`, `as_of`, `grain`, `period`, `output_format`, `precedent`, `other`). Scripted answers and code checks match the topic, never the wording.
 - Every output is parsed into its Pydantic model. On failure: one retry with the validation error, then escalate to the next human gate. A `refusal` or `max_tokens` stop reason escalates without a retry.
 - Content from data, documents and tool results is wrapped as **data** in prompts; instructions found inside it are ignored. Policy is enforced by tools, so a successful injection still cannot run DDL, skip a check, or bypass a gate.
@@ -760,6 +764,7 @@ The audit log in the run folder remains the record of truth; `spb_ops` is a repo
 
 - Model ids come from configuration (`COPILOT_MODEL_MAIN`, `COPILOT_MODEL_FAST`); agents never hard-code them.
 - Prompts are versioned files with front-matter (`id`, `version`, `tier`, `effort`, `max_tokens`). Prompt id and version are logged on every call.
+- A prompt lock (`tests/fixtures/prompt_lock.yaml`) pins the SHA-256 of each prompt body per `id@version`. Editing a prompt without bumping its version fails the tests. Committed recordings must match the current prompt versions. A missing recording ends the CLI with a re-record message and exit code 2.
 - LLM calls replay recorded responses by default. Live calls happen only with an explicit `--live` or `--record`, never in tests or CI. A per-run token budget is a hard stop. See ADR 015.
 - Any change to a prompt, model id or domain pack must pass `make eval` before merge (manual gate in the PR template).
 - The eval report records model ids and prompt versions, so results are attributable.
@@ -826,7 +831,8 @@ supervisory-request-copilot/
 │   ├── contracts/              # Pydantic models
 │   ├── llm/                    # gateway
 │   ├── prompts/                # versioned prompt files
-│   ├── agents/                 # intake, analyst, proposer, reviewer, narrative
+│   ├── agents/                 # intake, analyst, explainer, proposer, reviewer, narrative
+│   ├── guards/                 # checks on model-written text (number guard)
 │   ├── data/                   # backends, sql policy, snapshots, hashing
 │   ├── packs/                  # domain pack loader, compiler, writer
 │   ├── validation/
@@ -873,7 +879,7 @@ Full ADRs live in `docs/adr/`. Summary:
 |---|---|---|---|
 | 001 | Deterministic workflow graph; LLMs inside bounded nodes | Auditability; predictable behaviour under supervision | Less "autonomy", much easier to explain and test |
 | 002 | Validation engine is code, not an LLM | A model should not grade its own work; checks must be reproducible | More upfront work on checks; LLM only explains |
-| 003 | Numbers injected by code into LLM narratives | Eliminates hallucinated figures | Narrative templates need placeholders; regex guard rejects literal numbers |
+| 003 | Numbers injected by code into LLM narratives | Eliminates hallucinated figures | Narrative templates need placeholders; the shared number guard (`copilot.guards.numbers`) rejects any number code did not supply, already in M4 for the failure explainer |
 | 004 | Template-first SQL from a governed glossary | Definition consistency; reviewable logic | Coverage limited to defined metrics; that is intended |
 | 005 | Undefined metrics go through a human-approved proposal | Definitions are governance decisions | Slower first answer; fast every time after |
 | 006 | Synthetic data with seeded, planted defects | Demonstrates detection controllably and reproducibly | Must document that real data is messier |
